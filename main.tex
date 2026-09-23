@@ -1,0 +1,716 @@
+%=============================================================================
+% EECE 7205: Fundamentals of Computer Engineering | Fall 2026
+% Dr. Fatema Nafa | Assignment #01 | MyungJin Suh
+%=============================================================================
+\documentclass[11pt]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath, amssymb}
+\usepackage{float}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage[hidelinks]{hyperref}
+
+\definecolor{shellbg}{HTML}{F5F5F5}
+\definecolor{rulegray}{HTML}{BBBBBB}
+
+\lstdefinestyle{term}{
+  basicstyle=\ttfamily\scriptsize,
+  backgroundcolor=\color{shellbg},
+  frame=single, rulecolor=\color{rulegray},
+  breaklines=true, columns=fullflexible, keepspaces=true,
+  showstringspaces=false, xleftmargin=6pt, xrightmargin=6pt,
+  aboveskip=6pt, belowskip=6pt,
+}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.42em plus 0.1em minus 0.12em}
+% Keep algorithm blocks tight against the surrounding text.
+\setlength{\textfloatsep}{8pt plus 2pt minus 2pt}
+\setlength{\intextsep}{8pt plus 2pt minus 2pt}
+
+\title{\textbf{EECE 7205 -- Assignment \#01}\\[0.3em]
+       \large Sorting-Based Interview Problems}
+\author{MyungJin Suh}
+\date{September 23, 2026}
+
+\begin{document}
+\maketitle
+
+All ten solutions are in \texttt{cpp/Assignment01\_Suh.cpp}, one menu-driven
+program with each problem in its own function.
+
+\begin{lstlisting}[style=term]
+$ cd cpp
+$ g++ -std=c++17 -O2 -Wall -Wextra -o Assignment01_Suh Assignment01_Suh.cpp
+$ ./Assignment01_Suh
+\end{lstlisting}
+
+Each problem below gives the approach, the pseudocode, the complexity, and the
+program's actual output for the provided example plus additional tests
+including at least one edge case.
+
+\textbf{Testing.} The solutions are covered by an automated test suite in
+\texttt{test/}, run with \texttt{./run\_tests.sh}:
+
+\begin{lstlisting}[style=term]
+$ cd test
+$ ./run_tests.sh
+  RESULT: 30 passed, 0 failed
+  ALL TESTS PASSED
+\end{lstlisting}
+
+\texttt{test\_solutions.cpp} runs three cases per problem --- the provided
+example, one additional case and one edge case --- each printing its problem,
+input and output. A failing case also prints the expected value.
+
+\newpage
+
+%% ==========================================================================
+\section*{Problem 1: Merge Overlapping Intervals}
+\addcontentsline{toc}{section}{Problem 1}
+\textbf{Question.} Given an array of intervals $[start, end]$, sort the intervals by starting value and merge every overlapping interval. Return the resulting non-overlapping intervals.
+
+\textbf{Approach.} Sort the intervals by starting value, then sweep once. Because the starts are non-decreasing, each interval can only overlap the block currently being built, so it is compared with the last merged interval only.
+
+\begin{algorithm}[H]
+\caption{Merge Overlapping Intervals}
+\begin{algorithmic}[1]
+\Function{MergeIntervals}{$intervals$}
+    \If{$intervals$ is empty}
+        \State \Return empty list
+    \EndIf
+    \State Sort $intervals$ by starting value
+    \State $merged \gets$ empty list
+    \State $current \gets$ first interval
+    \For{each $next$ interval starting from the second interval}
+        \If{$next.start \le current.end$}
+            \State $current.end \gets \max(current.end,\ next.end)$
+        \Else
+            \State Add $current$ to $merged$
+            \State $current \gets next$
+        \EndIf
+    \EndFor
+    \State Add $current$ to $merged$
+    \State \Return $merged$
+\EndFunction
+\end{algorithmic}
+\end{algorithm}
+
+\textbf{Why it is correct.} After sorting, $next.start \ge current.start$. If $next.start \le current.end$ the two overlap and their union is $[current.start,\ \max(current.end, next.end)]$; otherwise every remaining interval starts after $current.end$, so $current$ is final. Empty input returns early; a nested interval is handled by the maximum.
+
+\textbf{Complexity.} Time: $O(n\log n)$ -- the sort dominates; best, average and worst coincide.\\
+Space: $O(\log n)$ auxiliary, plus the output.
+
+\textbf{Output.}
+
+\begin{lstlisting}[style=term]
+  [Test 1] Provided example
+    Input : [[1,3], [2,6], [8,10], [15,18]]
+    Output: [[1,6], [8,10], [15,18]]
+
+  [Test 2] Unsorted, nested and touching blocks
+    Input : [[4,5], [1,4], [2,3], [9,9]]
+    Output: [[1,5], [9,9]]
+
+  [Test 3] Edge case - empty input
+    Input : []  (empty)
+    Output: []  (empty)
+\end{lstlisting}
+
+\newpage
+
+%% ==========================================================================
+\section*{Problem 2: Sort Colors (0, 1, 2)}
+\addcontentsline{toc}{section}{Problem 2}
+\textbf{Question.} Given an array containing only $0$, $1$ and $2$, sort it in place. First implement a counting-based solution, then the one-pass Dutch National Flag algorithm without using \texttt{std::sort()}.
+
+\textbf{Approach.} Only three key values exist, so comparison sorting is unnecessary. The counting solution tallies the categories and rewrites the array in two passes. The Dutch National Flag solution keeps three regions and classifies each element once, in a single pass.
+
+\begin{algorithm}[H]
+\caption{Sort Colors -- Counting Based}
+\begin{algorithmic}[1]
+\Function{SortColorsCounting}{$a$}
+    \State $count[0 \ldots 2] \gets 0$
+    \For{each value $v$ in $a$}
+        \State $count[v] \gets count[v] + 1$
+    \EndFor
+    \State $index \gets 0$
+    \For{$c \gets 0$ \textbf{to} $2$}
+        \For{$r \gets 1$ \textbf{to} $count[c]$}
+            \State $a[index] \gets c$
+            \State $index \gets index + 1$
+        \EndFor
+    \EndFor
+\EndFunction
+\end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}[H]
+\caption{Sort Colors -- Dutch National Flag (one pass)}
+\begin{algorithmic}[1]
+\Function{SortColorsDNF}{$a$}
+    \State $low \gets 0$; \quad $mid \gets 0$; \quad $high \gets n - 1$
+    \While{$mid \le high$}
+        \If{$a[mid] = 0$}
+            \State swap $a[low]$ and $a[mid]$
+            \State $low \gets low + 1$; \quad $mid \gets mid + 1$
+        \ElsIf{$a[mid] = 1$}
+            \State $mid \gets mid + 1$
+        \Else \Comment{$a[mid] = 2$}
+            \State swap $a[mid]$ and $a[high]$
+            \State $high \gets high - 1$ \Comment{$mid$ must \emph{not} advance}
+        \EndIf
+    \EndWhile
+\EndFunction
+\end{algorithmic}
+\end{algorithm}
+
+\textbf{Why it is correct.} Dutch National Flag invariant: $a[0..low{-}1]$ are 0, $a[low..mid{-}1]$ are 1, $a[mid..high]$ unexamined, $a[high{+}1..n{-}1]$ are 2. On a 2 the value swapped in is unexamined, so $mid$ must not advance. Each iteration decreases $high-mid$, giving at most $n$ iterations.
+
+\textbf{Complexity.} Time: $\Theta(n)$ for both; best, average and worst coincide.\\
+Space: $O(1)$ for both.
+
+\textbf{Output.}
+
+\begin{lstlisting}[style=term]
+  [Test 1] Provided example
+    Input          : [2, 0, 2, 1, 1, 0]
+    Counting sort  : [0, 0, 1, 1, 2, 2]
+    Dutch Nat. Flag: [0, 0, 1, 1, 2, 2]
+    Both agree     : yes
+
+  [Test 2] Edge case - one category only
+    Input          : [2, 2, 2]
+    Counting sort  : [2, 2, 2]
+    Dutch Nat. Flag: [2, 2, 2]
+    Both agree     : yes
+
+  [Test 3] Edge case - empty input
+    Input          : []  (empty)
+    Counting sort  : []  (empty)
+    Dutch Nat. Flag: []  (empty)
+    Both agree     : yes
+\end{lstlisting}
+
+\newpage
+
+%% ==========================================================================
+\section*{Problem 3: Largest Number From Concatenation}
+\addcontentsline{toc}{section}{Problem 3}
+\textbf{Question.} Given a vector of nonnegative integers, arrange them so that their concatenation forms the largest possible number. Return the answer as a string.
+
+\textbf{Approach.} Numeric order is wrong ($3$ before $30$ gives 330, not 303). Sort on the concatenations instead: $a$ precedes $b$ when $a\frown b > b\frown a$. Both candidates have the same length, so comparing them lexicographically is comparing them numerically.
+
+\begin{algorithm}[H]
+\caption{Largest Number From Concatenation}
+\begin{algorithmic}[1]
+\Function{LargestNumber}{$values$}
+    \If{$values$ is empty}
+        \State \Return empty string
+    \EndIf
+    \State $tokens \gets$ decimal string of each value in $values$
+    \State Sort $tokens$ so that $a$ precedes $b$ whenever $a \frown b > b \frown a$
+    \If{$tokens[0] = \texttt{"0"}$}
+        \State \Return \texttt{"0"} \Comment{every value is zero}
+    \EndIf
+    \State $result \gets$ empty string
+    \For{each $t$ in $tokens$}
+        \State $result \gets result \frown t$
+    \EndFor
+    \State \Return $result$
+\EndFunction
+\end{algorithmic}
+\end{algorithm}
+
+\textbf{Why it is correct.} The rule is a valid total order because $a\frown b > b\frown a \Leftrightarrow f(a) > f(b)$ with $f(x)=x/(10^{|x|}-1)$, so it is just sorting on a numeric key. It is optimal by exchange: swapping any adjacent out-of-order pair strictly increases the result. If the largest token is \texttt{"0"} every token is zero, so \texttt{"0"} is returned rather than \texttt{"000"}.
+
+\textbf{Complexity.} Time: $O(nL\log n)$ for $n$ values of at most $L$ digits.\\
+Space: $\Theta(nL)$.
+
+\textbf{Output.}
+
+\begin{lstlisting}[style=term]
+  [Test 1] Provided example
+    Input : [3, 30, 34, 5, 9]
+    Output: "9534330"
+
+  [Test 2] Prefix comparison matters
+    Input : [10, 2]
+    Output: "210"
+
+  [Test 3] Edge case - every value is zero
+    Input : [0, 0, 0]
+    Output: "0"
+
+  [Test 4] Edge case - empty input
+    Input : []  (empty)
+    Output: ""  (empty string)
+\end{lstlisting}
+
+\newpage
+
+%% ==========================================================================
+\section*{Problem 4: Group Anagrams}
+\addcontentsline{toc}{section}{Problem 4}
+\textbf{Question.} Given a vector of strings, group the anagrams together. The order of groups does not matter, but words within each group should retain their original input order.
+
+\textbf{Approach.} Two words are anagrams exactly when their character multisets match, so the word's letters in sorted order form a canonical signature. A hash map from signature to group turns an all-pairs comparison into one pass.
+
+\begin{algorithm}[H]
+\caption{Group Anagrams}
+\begin{algorithmic}[1]
+\Function{GroupAnagrams}{$words$}
+    \State $slotOf \gets$ empty map from signature to group index
+    \State $groups \gets$ empty list of lists
+    \For{each $word$ in $words$, in input order}
+        \State $signature \gets$ the characters of $word$ in sorted order
+        \If{$signature$ is not a key of $slotOf$}
+            \State $slotOf[signature] \gets$ number of groups
+            \State Append a new group containing only $word$ to $groups$
+        \Else
+            \State Append $word$ to $groups[\,slotOf[signature]\,]$
+        \EndIf
+    \EndFor
+    \State \Return $groups$
+\EndFunction
+\end{algorithmic}
+\end{algorithm}
+
+\textbf{Why it is correct.} Equal sorted forms hold exactly when the multisets are equal, so the signature captures the anagram relation precisely. Words are appended as the input is scanned, which preserves input order inside each group. Duplicates share a signature and are kept as separate entries; empty strings share the signature \texttt{""}.
+
+\textbf{Complexity.} Time: $O(nL\log L)$ expected for $n$ words of length at most $L$.\\
+Space: $\Theta(nL)$.
+
+\textbf{Output.}
+
+\begin{lstlisting}[style=term]
+  [Test 1] Provided example
+    Input : ["eat", "tea", "tan", "ate", "nat", "bat"]
+    Output: [["eat", "tea", "ate"], ["tan", "nat"], ["bat"]]
+
+  [Test 2] Duplicates and a repeated word
+    Input : ["abc", "cba", "abc", "xyz"]
+    Output: [["abc", "cba", "abc"], ["xyz"]]
+
+  [Test 3] Edge case - empty string included
+    Input : ["", "", "a"]
+    Output: [["", ""], ["a"]]
+
+  [Test 4] Edge case - empty input
+    Input : []  (empty)
+    Output: []  (empty)
+\end{lstlisting}
+
+\newpage
+
+%% ==========================================================================
+\section*{Problem 5: Meeting Rooms -- Can One Person Attend Every Meeting?}
+\addcontentsline{toc}{section}{Problem 5}
+\textbf{Question.} Given meeting intervals $[start, end]$, determine whether one person can attend every meeting. Meetings that begin exactly when another ends are allowed.
+
+\textbf{Approach.} Sort by start time and compare neighbours only. If $s_i \ge e_{i-1}$ holds for every $i$ then no pair overlaps at all, since $s_j \ge s_{i+1} \ge e_i$ for every $j > i$. The comparison is strict because meetings that touch are allowed.
+
+\begin{algorithm}[H]
+\caption{Can One Person Attend Every Meeting?}
+\begin{algorithmic}[1]
+\Function{CanAttendAllMeetings}{$meetings$}
+    \If{$meetings$ has fewer than two elements}
+        \State \Return \textbf{true}
+    \EndIf
+    \State Sort $meetings$ by starting value
+    \For{$i \gets 1$ \textbf{to} $n - 1$}
+        \If{$meetings[i].start < meetings[i-1].end$}
+            \State \Return \textbf{false} \Comment{strict: touching is allowed}
+        \EndIf
+    \EndFor
+    \State \Return \textbf{true}
+\EndFunction
+\end{algorithmic}
+\end{algorithm}
+
+\textbf{Why it is correct.} Two meetings conflict when $s_i < e_j \wedge s_j < e_i$, with strict inequalities, so $[1,5]$ and $[5,9]$ do not conflict. Sorting by $(\text{start},\text{end})$ also settles the degenerate case: a zero-length meeting sorts before one starting at the same time, which keeps the adjacent scan from reporting a conflict that is not there.
+
+\textbf{Complexity.} Time: $\Theta(n\log n)$ -- the sort dominates, so the early exit does not change the bound.\\
+Space: $O(\log n)$ auxiliary.
+
+\textbf{Output.}
+
+\begin{lstlisting}[style=term]
+  [Test 1] Provided example - overlap exists
+    Input : [[0,30], [5,10], [15,20]]
+    Output: false
+
+  [Test 2] Back-to-back meetings are allowed
+    Input : [[1,5], [5,9], [9,12]]
+    Output: true
+
+  [Test 3] Unsorted input with a hidden conflict
+    Input : [[7,10], [2,4], [3,8]]
+    Output: false
+
+  [Test 4] Edge case - no meetings at all
+    Input : []  (empty)
+    Output: true
+\end{lstlisting}
+
+\newpage
+
+%% ==========================================================================
+\section*{Problem 6: K Closest Points to the Origin}
+\addcontentsline{toc}{section}{Problem 6}
+\textbf{Question.} Given points $(x,y)$ and an integer $k$, return the $k$ points closest to the origin. Compare a sorting solution with a heap-based solution.
+
+\textbf{Approach.} Rank by squared distance: the square root is increasing, so the ordering is identical, and the arithmetic stays exact in \texttt{long long}. Two solutions are compared -- sort all $n$ points and take $k$, or keep a max-heap of the $k$ best and evict the farthest.
+
+\begin{algorithm}[H]
+\caption{K Closest Points -- Sorting Solution}
+\begin{algorithmic}[1]
+\Function{KClosestBySorting}{$points$, $k$}
+    \If{$k \le 0$ \textbf{or} $points$ is empty}
+        \State \Return empty list
+    \EndIf
+    \State $k \gets \min(k,\ |points|)$
+    \State Sort $points$ by $x^2 + y^2$ ascending
+    \State \Return the first $k$ points
+\EndFunction
+\end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}[H]
+\caption{K Closest Points -- Bounded Max-Heap Solution}
+\begin{algorithmic}[1]
+\Function{KClosestByHeap}{$points$, $k$}
+    \If{$k \le 0$ \textbf{or} $points$ is empty}
+        \State \Return empty list
+    \EndIf
+    \State $k \gets \min(k,\ |points|)$
+    \State $heap \gets$ empty max-heap keyed on squared distance
+    \For{each $p$ in $points$}
+        \State Push $(x_p^2 + y_p^2,\ p)$ onto $heap$
+        \If{$|heap| > k$}
+            \State Pop the maximum \Comment{evict the farthest candidate}
+        \EndIf
+    \EndFor
+    \State $result \gets$ all entries of $heap$, popped and then reversed
+    \State \Return $result$ \Comment{nearest first}
+\EndFunction
+\end{algorithmic}
+\end{algorithm}
+
+\textbf{Why it is correct.} For the heap, the $k$ closest of the first $i+1$ points are always a subset of the $k$ closest of the first $i$ points together with the new point, so a discarded point never needs to return. Ties may be broken differently by the two methods, so they are compared as multisets of distances rather than as sequences.
+
+\textbf{Complexity.} Time: Sorting $O(n\log n)$; heap $O(n\log k)$. The heap wins when $k \ll n$ and also streams; \texttt{nth\_element} would give $\Theta(n)$ expected.\\
+Space: Sorting $O(\log n)$; heap $O(k)$.
+
+\textbf{Output.}
+
+\begin{lstlisting}[style=term]
+  [Test 1] Provided example
+    Input : points = [(1,3), (-2,2)], k = 1
+    Sorting solution: [(-2,2)]
+    Heap solution   : [(-2,2)]
+    Distances agree : yes
+
+  [Test 2] Mixed signs, k in the middle
+    Input : points = [(3,3), (5,-1), (-2,4)], k = 2
+    Sorting solution: [(3,3), (-2,4)]
+    Heap solution   : [(3,3), (-2,4)]
+    Distances agree : yes
+
+  [Test 3] Edge case - k equals n
+    Input : points = [(0,1), (1,0)], k = 2
+    Sorting solution: [(0,1), (1,0)]
+    Heap solution   : [(1,0), (0,1)]
+    Distances agree : yes
+
+  [Test 4] Edge case - k is zero
+    Input : points = [(1,1), (2,2)], k = 0
+    Sorting solution: []  (empty)
+    Heap solution   : []  (empty)
+    Distances agree : yes
+\end{lstlisting}
+
+\newpage
+
+%% ==========================================================================
+\section*{Problem 7: Top K Frequent Elements}
+\addcontentsline{toc}{section}{Problem 7}
+\textbf{Question.} Given an integer array and an integer $k$, return the $k$ most frequent values. If frequencies tie, return the smaller value first.
+
+\textbf{Approach.} Count with a hash map, then sort the $d$ distinct (value, count) pairs by count descending and value ascending. Sorting the distinct values rather than all $n$ elements is what keeps this cheap.
+
+\begin{algorithm}[H]
+\caption{Top K Frequent Elements}
+\begin{algorithmic}[1]
+\Function{TopKFrequent}{$values$, $k$}
+    \If{$k \le 0$ \textbf{or} $values$ is empty}
+        \State \Return empty list
+    \EndIf
+    \State $frequency \gets$ empty map from value to count
+    \For{each $v$ in $values$}
+        \State $frequency[v] \gets frequency[v] + 1$
+    \EndFor
+    \State $items \gets$ the (value, count) pairs of $frequency$
+    \State $k \gets \min(k,\ |items|)$
+    \State Sort $items$ by count descending; break ties by value ascending
+    \State \Return the values of the first $k$ entries of $items$
+\EndFunction
+\end{algorithmic}
+\end{algorithm}
+
+\textbf{Why it is correct.} The comparator orders pairs by $(-\text{count}, \text{value})$. Values are map keys and therefore distinct, so no two entries compare equal, the order is total, and the result is deterministic -- the tie rule is honoured both in which values are chosen and in the output order.
+
+\textbf{Complexity.} Time: $O(n + d\log d)$ expected, bounded by $O(n\log n)$ since $d \le n$.\\
+Space: $\Theta(d)$.
+
+\textbf{Output.}
+
+\begin{lstlisting}[style=term]
+  [Test 1] Provided example
+    Input : [1, 1, 1, 2, 2, 3], k = 2
+    Output: [1, 2]
+
+  [Test 2] Frequency tie - smaller value first
+    Input : [5, 5, 4, 4, 3], k = 2
+    Output: [4, 5]
+
+  [Test 3] Edge case - k larger than distinct set
+    Input : [9, 9, 9], k = 5
+    Output: [9]
+
+  [Test 4] Edge case - empty input
+    Input : []  (empty), k = 3
+    Output: []  (empty)
+\end{lstlisting}
+
+\newpage
+
+%% ==========================================================================
+\section*{Problem 8: Merge K Sorted Arrays}
+\addcontentsline{toc}{section}{Problem 8}
+\textbf{Question.} Given $k$ sorted integer arrays, merge them into one sorted array. Design a solution that does not repeatedly sort the complete output.
+
+\textbf{Approach.} Each array is already sorted, so the smallest unconsumed element is always the head of some array. A min-heap holding one head per array answers that in $O(\log k)$ and produces the output in order, so the complete result is never re-sorted.
+
+\begin{algorithm}[H]
+\caption{Merge K Sorted Arrays}
+\begin{algorithmic}[1]
+\Function{MergeKSortedArrays}{$lists$}
+    \State $heap \gets$ empty min-heap keyed on value
+    \For{$i \gets 0$ \textbf{to} $k - 1$}
+        \If{$lists[i]$ is not empty}
+            \State Push $(\,lists[i][0],\ i,\ 0\,)$ onto $heap$
+        \EndIf
+    \EndFor
+    \State $merged \gets$ empty list
+    \While{$heap$ is not empty}
+        \State $(value,\ listIndex,\ elemIndex) \gets$ pop the minimum of $heap$
+        \State Append $value$ to $merged$
+        \State $nextIndex \gets elemIndex + 1$
+        \If{$nextIndex < |lists[listIndex]|$}
+            \State Push $(\,lists[listIndex][nextIndex],\ listIndex,\ nextIndex\,)$ onto $heap$
+        \EndIf
+    \EndWhile
+    \State \Return $merged$
+\EndFunction
+\end{algorithmic}
+\end{algorithm}
+
+\textbf{Why it is correct.} Invariant: the heap holds each non-exhausted array's smallest unconsumed element, so the global minimum is always in it and extract-min returns it. Every element is pushed once and popped once, giving exactly $N$ iterations. Empty arrays are never pushed.
+
+\textbf{Complexity.} Time: $O(N\log k)$ against $O(N\log N)$ for concatenate-then-sort.\\
+Space: $O(k)$ auxiliary, plus the $\Theta(N)$ output.
+
+\textbf{Output.}
+
+\begin{lstlisting}[style=term]
+  [Test 1] Provided example
+    Input : [[1, 4, 5], [1, 3, 4], [2, 6]]
+    Output: [1, 1, 2, 3, 4, 4, 5, 6]
+
+  [Test 2] Very uneven lengths with duplicates
+    Input : [[-5], [0, 0, 0], [-9, -4, 7, 7]]
+    Output: [-9, -5, -4, 0, 0, 0, 7, 7]
+
+  [Test 3] Edge case - some lists are empty
+    Input : [[], [2, 8], []]
+    Output: [2, 8]
+
+  [Test 4] Edge case - every list is empty
+    Input : [[], []]
+    Output: []  (empty)
+\end{lstlisting}
+
+\newpage
+
+%% ==========================================================================
+\section*{Problem 9: Kth Largest Element}
+\addcontentsline{toc}{section}{Problem 9}
+\textbf{Question.} Given an unsorted integer array and $k$, return the $k$th-largest element. Duplicate values count as separate positions.
+
+\textbf{Approach.} The $k$th largest sits at ascending index $n-k$, so only one order statistic is needed. Quickselect partitions and recurses into one side only. A three-way partition groups all copies of the pivot at once, which keeps duplicate-heavy input linear, and a random pivot means no input can force the worst case.
+
+\begin{algorithm}[H]
+\caption{Three-Way Partition (Dutch National Flag)}
+\begin{algorithmic}[1]
+\Function{ThreeWayPartition}{$a$, $low$, $high$}
+    \State $pivot \gets a[\,\text{random index in } [low, high]\,]$
+    \State $lt \gets low$; \quad $gt \gets high$; \quad $i \gets low$
+    \While{$i \le gt$}
+        \If{$a[i] < pivot$}
+            \State swap $a[i]$ and $a[lt]$; \quad $i \gets i+1$; \quad $lt \gets lt+1$
+        \ElsIf{$a[i] > pivot$}
+            \State swap $a[i]$ and $a[gt]$; \quad $gt \gets gt-1$
+        \Else
+            \State $i \gets i+1$
+        \EndIf
+    \EndWhile
+    \State \Return $(lt,\ gt)$ \Comment{$a[lt \ldots gt]$ all equal $pivot$}
+\EndFunction
+\end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}[H]
+\caption{Kth Largest Element (Quickselect)}
+\begin{algorithmic}[1]
+\Function{KthLargest}{$values$, $k$}
+    \If{$k < 1$ \textbf{or} $k > n$}
+        \State report an error
+    \EndIf
+    \State $target \gets n - k$ \Comment{index in ascending order}
+    \State $low \gets 0$; \quad $high \gets n - 1$
+    \While{$low < high$}
+        \State $(lt,\ gt) \gets$ \Call{ThreeWayPartition}{$values$, $low$, $high$}
+        \If{$target < lt$}
+            \State $high \gets lt - 1$
+        \ElsIf{$target > gt$}
+            \State $low \gets gt + 1$
+        \Else
+            \State \Return $values[target]$ \Comment{inside the pivot block}
+        \EndIf
+    \EndWhile
+    \State \Return $values[low]$
+\EndFunction
+\end{algorithmic}
+\end{algorithm}
+
+\textbf{Why it is correct.} After partitioning, $a[lt..gt]$ all equal the pivot and are in final position, so the target is either strictly left, strictly right, or already settled. The pivot block is never empty, so the range strictly shrinks each iteration. $k$ outside $[1,n]$ is rejected.
+
+\textbf{Complexity.} Time: $\Theta(n)$ best and expected; $\Theta(n^2)$ worst, unreachable by choice of input.\\
+Space: $O(1)$ auxiliary -- the search loop is iterative.
+
+\textbf{Output.}
+
+\begin{lstlisting}[style=term]
+  [Test 1] Provided example
+    Input : [3, 2, 1, 5, 6, 4], k = 2
+    Output: 5
+
+  [Test 2] Duplicates count as separate positions
+    Input : [3, 2, 3, 1, 2, 4, 5, 5, 6], k = 4
+    Output: 4
+
+  [Test 3] Edge case - k equals n (the minimum)
+    Input : [7, 7, 2], k = 3
+    Output: 2
+
+  [Test 4] Edge case - single element
+    Input : [42], k = 1
+    Output: 42
+
+  [Test 5] Edge case - k out of range
+    Input : [1, 2, 3], k = 7
+    Output: rejected (k must satisfy 1 <= k <= n)
+\end{lstlisting}
+
+\newpage
+
+%% ==========================================================================
+\section*{Problem 10: Count Inversions}
+\addcontentsline{toc}{section}{Problem 10}
+\textbf{Question.} Count pairs $(i,j)$ for which $i<j$ and $values[i] > values[j]$. Develop an efficient solution by modifying Merge Sort, in $O(n\log n)$ time, using a 64-bit integer for the count.
+
+\textbf{Approach.} Every inversion lies wholly in the left half, wholly in the right half, or crosses between them, and these three classes are disjoint. Merge Sort counts the crossing ones for free: when a right element is taken while $a[i..mid]$ are still pending, all $mid-i+1$ of them exceed it, so a whole batch is counted with one addition.
+
+\begin{algorithm}[H]
+\caption{Merge Two Sorted Halves and Count Cross Inversions}
+\begin{algorithmic}[1]
+\Function{MergeAndCount}{$a$, $buffer$, $left$, $mid$, $right$}
+    \State $count \gets 0$
+    \State $i \gets left$; \quad $j \gets mid + 1$; \quad $t \gets left$
+    \While{$i \le mid$ \textbf{and} $j \le right$}
+        \If{$a[i] \le a[j]$}
+            \State $buffer[t] \gets a[i]$; \quad $i \gets i+1$
+            \Comment{$\le$ keeps equal pairs uncounted}
+        \Else
+            \State $count \gets count + (mid - i + 1)$
+            \Comment{$a[i \ldots mid]$ all exceed $a[j]$}
+            \State $buffer[t] \gets a[j]$; \quad $j \gets j+1$
+        \EndIf
+        \State $t \gets t+1$
+    \EndWhile
+    \State Copy any remaining elements of both halves into $buffer$
+    \State Copy $buffer[left \ldots right]$ back into $a[left \ldots right]$
+    \State \Return $count$
+\EndFunction
+\end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}[H]
+\caption{Count Inversions by Modified Merge Sort}
+\begin{algorithmic}[1]
+\Function{SortAndCount}{$a$, $buffer$, $left$, $right$}
+    \If{$left \ge right$}
+        \State \Return $0$ \Comment{zero or one element has no inversion}
+    \EndIf
+    \State $mid \gets left + \lfloor (right - left)/2 \rfloor$
+    \State $count \gets$ \Call{SortAndCount}{$a$, $buffer$, $left$, $mid$}
+    \State $count \gets count +$ \Call{SortAndCount}{$a$, $buffer$, $mid+1$, $right$}
+    \State $count \gets count +$ \Call{MergeAndCount}{$a$, $buffer$, $left$, $mid$, $right$}
+    \State \Return $count$
+\EndFunction
+\Statex
+\Function{CountInversions}{$values$}
+    \If{$|values| < 2$}
+        \State \Return $0$
+    \EndIf
+    \State $buffer \gets$ array of size $|values|$
+    \State \Return \Call{SortAndCount}{$values$, $buffer$, $0$, $|values| - 1$}
+\EndFunction
+\end{algorithmic}
+\end{algorithm}
+
+\textbf{Why it is correct.} Merge Sort permutes only within a half, so every left element keeps an original index below every right element and the counted pairs are genuine. Taking from the left on ties ($a[i] \le a[j]$) means equal values are not counted, matching the strict definition. The count is \texttt{long long} because it reaches $n(n-1)/2$, which overflows 32 bits near $n = 65{,}536$.
+
+\textbf{Complexity.} Time: $\Theta(n\log n)$ from $T(n)=2T(n/2)+\Theta(n)$; independent of input order. Brute force is $\Theta(n^2)$ and is used only to validate.\\
+Space: $\Theta(n)$ for one reused buffer, plus $\Theta(\log n)$ stack.
+
+\textbf{Output.}
+
+\begin{lstlisting}[style=term]
+  [Test 1] Provided example
+    Input          : [2, 4, 1, 3, 5]
+    Output         : 3
+    Brute force    : 3  -> match
+
+  [Test 2] Reverse-sorted input (worst case)
+    Input          : [5, 4, 3, 2, 1]
+    Output         : 10
+    Brute force    : 10  -> match
+
+  [Test 3] Duplicates are not inversions
+    Input          : [2, 2, 2, 2]
+    Output         : 0
+    Brute force    : 0  -> match
+
+  [Test 4] Edge case - empty input
+    Input          : []  (empty)
+    Output         : 0
+    Brute force    : 0  -> match
+\end{lstlisting}
+
+\end{document}
