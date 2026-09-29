@@ -1,0 +1,18 @@
+Original: 34 7 23 32 5 62 14 19
+Heap:     62 32 34 19 5 23 14 7
+end = 7: heap:   34 32 23 19 5 7 14
+         sorted: 62
+end = 6: heap:   32 19 23 14 5 7
+         sorted: 34 62
+end = 5: heap:   23 19 7 14 5
+         sorted: 32 34 62
+end = 4: heap:   19 14 7 5
+         sorted: 23 32 34 62
+end = 3: heap:   14 5 7
+         sorted: 19 23 32 34 62
+end = 2: heap:   7 5
+         sorted: 14 19 23 32 34 62
+end = 1: heap:   5
+         sorted: 7 14 19 23 32 34 62
+Sorted:   5 7 14 19 23 32 34 62
+Swaps in siftDown: 12

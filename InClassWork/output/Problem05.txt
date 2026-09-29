@@ -1,0 +1,56 @@
+=== Run 1: original array A ===
+Original: 34 7 23 32 5 62 14 19
+split:  34 7 23 32 5 62 14 19
+split:  34 7 23 32
+split:  34 7
+merged: 7 34
+split:  23 32
+merged: 23 32
+merged: 7 23 32 34
+split:  5 62 14 19
+split:  5 62
+merged: 5 62
+split:  14 19
+merged: 14 19
+merged: 5 14 19 62
+merged: 5 7 14 19 23 32 34 62
+Sorted:   5 7 14 19 23 32 34 62
+Comparisons: 17   (final merge: 7)
+
+=== Run 2: sorted copy of A ===
+Original: 5 7 14 19 23 32 34 62
+split:  5 7 14 19 23 32 34 62
+split:  5 7 14 19
+split:  5 7
+merged: 5 7
+split:  14 19
+merged: 14 19
+merged: 5 7 14 19
+split:  23 32 34 62
+split:  23 32
+merged: 23 32
+split:  34 62
+merged: 34 62
+merged: 23 32 34 62
+merged: 5 7 14 19 23 32 34 62
+Sorted:   5 7 14 19 23 32 34 62
+Comparisons: 12   (final merge: 4)
+
+=== Run 3: reversed copy of A ===
+Original: 62 34 32 23 19 14 7 5
+split:  62 34 32 23 19 14 7 5
+split:  62 34 32 23
+split:  62 34
+merged: 34 62
+split:  32 23
+merged: 23 32
+merged: 23 32 34 62
+split:  19 14 7 5
+split:  19 14
+merged: 14 19
+split:  7 5
+merged: 5 7
+merged: 5 7 14 19
+merged: 5 7 14 19 23 32 34 62
+Sorted:   5 7 14 19 23 32 34 62
+Comparisons: 12   (final merge: 4)

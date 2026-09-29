@@ -1,0 +1,10 @@
+Original: 34 7 23 32 5 62 14 19
+Pass 1: min = 5 at index 4 -> 5 7 23 32 34 62 14 19
+Pass 2: min = 7 at index 1 -> 5 7 23 32 34 62 14 19
+Pass 3: min = 14 at index 6 -> 5 7 14 32 34 62 23 19
+Pass 4: min = 19 at index 7 -> 5 7 14 19 34 62 23 32
+Pass 5: min = 23 at index 6 -> 5 7 14 19 23 62 34 32
+Pass 6: min = 32 at index 7 -> 5 7 14 19 23 32 34 62
+Pass 7: min = 34 at index 6 -> 5 7 14 19 23 32 34 62
+Sorted:   5 7 14 19 23 32 34 62
+Comparisons: 28   Swaps: 5
