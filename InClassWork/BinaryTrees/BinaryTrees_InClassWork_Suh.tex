@@ -1,0 +1,335 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=0.8in]{geometry}
+\usepackage{amsmath, amssymb}
+\usepackage{xcolor}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{tikz}
+\usepackage{needspace}
+
+\definecolor{newc}{HTML}{2E7D32}
+\definecolor{tgtc}{HTML}{C62828}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.35em plus 0.1em minus 0.1em}
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+
+\tikzset{bn/.style={circle, draw, thick, fill=white, minimum size=5.6mm, inner sep=0pt, font=\footnotesize}}
+
+% \cbt[layout levels]{values in level order}{indices with green ring}{indices with red ring}
+% Node i is drawn at level floor(log2(i+1)); its parent is index (i-1)/2.
+\newcommand{\cbt}[4][3]{%
+  \begin{tikzpicture}[x=1mm, y=1mm, baseline=(current bounding box.north)]
+    \ifcase#1\or\def\cbtW{16}\or\def\cbtW{26}\or\def\cbtW{34}\or\def\cbtW{66}\fi
+    \def\cbtN{0}%
+    \if\relax\detokenize{#2}\relax\else\foreach \cbtV [count=\cbtC] in {#2} {\xdef\cbtN{\cbtC}}\fi
+    \pgfmathsetmacro{\cbtH}{9*((\cbtN>1)+(\cbtN>3)+(\cbtN>7))}
+    \useasboundingbox (0,5) rectangle (\cbtW,-\cbtH-5);
+    \if\relax\detokenize{#2}\relax
+      \node[font=\footnotesize\itshape] at (\cbtW/2,-\cbtH/2) {(empty)};
+    \else
+      \foreach \cbtV [count=\cbtK from 0] in {#2} {
+        \pgfmathtruncatemacro{\cbtL}{(\cbtK>0)+(\cbtK>2)+(\cbtK>6)+(\cbtK>14)}
+        \pgfmathsetmacro{\cbtX}{(\cbtK-(2^\cbtL-1)+0.5)*\cbtW/(2^\cbtL)}
+        \node[bn] (n\cbtK) at (\cbtX,-9*\cbtL) {\cbtV};
+        \ifnum\cbtK>0
+          \pgfmathtruncatemacro{\cbtP}{(\cbtK-1)/2}
+          \draw[thick] (n\cbtP) -- (n\cbtK);
+        \fi
+      }
+    \fi
+    \if\relax\detokenize{#3}\relax\else
+      \foreach \cbtG in {#3} \draw[newc, line width=1.4pt] (n\cbtG.center) circle (3.9);
+    \fi
+    \if\relax\detokenize{#4}\relax\else
+      \foreach \cbtG in {#4} \draw[tgtc, line width=1.4pt] (n\cbtG.center) circle (3.9);
+    \fi
+  \end{tikzpicture}}
+
+\newcommand{\tcell}[2]{\begin{tabular}[t]{@{}c@{}}#2\\\footnotesize #1\end{tabular}}
+\newcommand{\trow}[1]{\par\smallskip\noindent\null\hfill#1\hfill\null\par\smallskip}
+\newcommand{\gring}{\tikz[baseline=-0.6ex]\draw[newc, line width=1.4pt] (0,0) circle (1.1mm);}
+\newcommand{\rring}{\tikz[baseline=-0.6ex]\draw[tgtc, line width=1.4pt] (0,0) circle (1.1mm);}
+\newcommand{\prob}[1]{\par\medskip\needspace{40mm}{\large\bfseries #1}\par\smallskip}
+\newcommand{\pa}[2][0mm]{\par\smallskip\needspace{#1}\textbf{(#2)}\ }
+\newcommand{\cbox}[2]{\begin{minipage}[t]{0.485\textwidth}\raggedright #1\par\smallskip\centering#2\end{minipage}}
+\newcommand{\crow}[2]{\par\smallskip\needspace{40mm}\noindent#1\hfill#2\par\medskip}
+
+\begin{document}
+
+%=============================================================================
+\prob{Problem 1: Creating the Tree}
+
+$\mathit{arr} = \{5, 12, 8, 21, 3, 17, 9\}$, $n = 7$.
+\hfill \gring\ node added / value moved \qquad \rring\ deletion target
+
+\pa{a}
+\begin{center}\small
+\begin{tabular}{@{}ccccccl@{}}
+\toprule
+Step & Element & Index $i$ & Parent index $(i-1)/2$ & Parent value & Left / Right & Rule(s)\\
+\midrule
+1 & 5  & 0 & ---           & --- & root             & C1\\
+2 & 12 & 1 & $(1-1)/2 = 0$ & 5   & Left ($i$ odd)   & C2, C3\\
+3 & 8  & 2 & $(2-1)/2 = 0$ & 5   & Right ($i$ even) & C2, C4\\
+4 & 21 & 3 & $(3-1)/2 = 1$ & 12  & Left ($i$ odd)   & C2, C3\\
+5 & 3  & 4 & $(4-1)/2 = 1$ & 12  & Right ($i$ even) & C2, C4\\
+6 & 17 & 5 & $(5-1)/2 = 2$ & 8   & Left ($i$ odd)   & C2, C3\\
+7 & 9  & 6 & $(6-1)/2 = 2$ & 8   & Right ($i$ even) & C2, C4\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\trow{\tcell{1: add 5}{\cbt{5}{0}{}}\hfill
+      \tcell{2: add 12}{\cbt{5,12}{1}{}}\hfill
+      \tcell{3: add 8}{\cbt{5,12,8}{2}{}}\hfill
+      \tcell{4: add 21}{\cbt{5,12,8,21}{3}{}}}
+\trow{\tcell{5: add 3}{\cbt{5,12,8,21,3}{4}{}}\hfill
+      \tcell{6: add 17}{\cbt{5,12,8,21,3,17}{5}{}}\hfill
+      \tcell{7: add 9 (final)}{\cbt{5,12,8,21,3,17,9}{6}{}}}
+
+\textbf{Final tree (level order):} 5 12 8 21 3 17 9
+
+\pa{b}
+21, 3, 17, 9 (indices 3--6) have NULL children. Rule \textbf{C5}: their child indices $2i+1$, $2i+2$
+are 7--14, all $\ge n = 7$, so those children do not exist.
+
+\par\smallskip
+\begin{minipage}[t]{0.40\textwidth}
+\textbf{(c)}\par\smallskip
+\small
+\begin{tabular}{@{}ll@{}}
+\toprule
+Root & 5\\
+Leaves & 21, 3, 17, 9\\
+Internal nodes & 5, 12, 8\\
+Edges & 6 \ ($n - 1$)\\
+Height & 2 \ ($5 \to 12 \to 21$)\\
+Depth of 17 & 2\\
+Ancestors of 3 & 12, 5\\
+Descendants of 12 & 21, 3\\
+Subtree at 8 & $\{8, 17, 9\}$\\
+Path 5 to 9 & $5 \to 8 \to 9$, length 2\\
+\bottomrule
+\end{tabular}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.56\textwidth}
+\textbf{(d)}\par\smallskip
+\small
+\begin{tabularx}{\linewidth}{@{}lY@{}}
+\toprule
+Max nodes on level 2 & $2^2 = 4$; level 2 has 4 \checkmark\\
+Max nodes for $H = 2$ & $2^{3} - 1 = 7 = n$ \checkmark\\
+Leaves $=$ two-child $+\,1$ & 5, 12, 8 $\Rightarrow 3 + 1 = 4$ \checkmark\\
+Min height, $N = 7$ & $\lfloor \log_2 7 \rfloor = 2 =$ height \checkmark\\
+\bottomrule
+\end{tabularx}
+
+\normalsize\medskip
+\textbf{Both full and complete.} C6: creation fills level by level, left to right, so the tree is
+always complete. Since $n = 7 = 2^{H+1} - 1$, every level is filled, so it is also full.
+\end{minipage}
+
+%=============================================================================
+\prob{Problem 2: Traversing the Tree}
+
+\pa{a--c} Each cell gives the node visited and why it is visited at that moment.
+\begin{center}\small
+\begin{tabularx}{\textwidth}{@{}cYYY@{}}
+\toprule
+\# & (a) Preorder (N L R) & (b) Inorder (L N R) & (c) Postorder (L R N)\\
+\midrule
+1 & \textbf{5}: root; N, then L (12), R (8) & \textbf{21}: L is NULL, so N & \textbf{21}: L, R NULL, so N\\
+2 & \textbf{12}: N, then L (21), R (3)       & \textbf{12}: L (21) done, so N & \textbf{3}: L, R NULL, so N\\
+3 & \textbf{21}: N; L, R NULL                & \textbf{3}: L is NULL, so N & \textbf{12}: L (21), R (3) done, so N\\
+4 & \textbf{3}: N; L, R NULL                 & \textbf{5}: L (12) done, so N & \textbf{17}: L, R NULL, so N\\
+5 & \textbf{8}: N, then L (17), R (9)        & \textbf{17}: L is NULL, so N & \textbf{9}: L, R NULL, so N\\
+6 & \textbf{17}: N; L, R NULL                & \textbf{8}: L (17) done, so N & \textbf{8}: L (17), R (9) done, so N\\
+7 & \textbf{9}: N; L, R NULL                 & \textbf{9}: L is NULL, so N & \textbf{5}: L (12), R (8) done, so N\\
+\midrule
+Rules & T2; T1, T6 at leaves & T3; T1, T6 at leaves & T4; T1, T6 at leaves\\
+Result & \textbf{5 12 21 3 8 17 9} & \textbf{21 12 3 5 17 8 9} & \textbf{21 3 12 17 9 8 5}\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\pa[45mm]{d} Level order (T5 at every row).
+\begin{center}\small
+\begin{tabular}{@{}clclll@{}}
+\toprule
+\# & Queue before & Remove \& visit & Add children (left, right) & Queue after & Output so far\\
+\midrule
+1 & 5            & 5  & 12, 8 & 12, 8        & 5\\
+2 & 12, 8        & 12 & 21, 3 & 8, 21, 3     & 5 12\\
+3 & 8, 21, 3     & 8  & 17, 9 & 21, 3, 17, 9 & 5 12 8\\
+4 & 21, 3, 17, 9 & 21 & none  & 3, 17, 9     & 5 12 8 21\\
+5 & 3, 17, 9     & 3  & none  & 17, 9        & 5 12 8 21 3\\
+6 & 17, 9        & 17 & none  & 9            & 5 12 8 21 3 17\\
+7 & 9            & 9  & none  & empty, stop  & \textbf{5 12 8 21 3 17 9}\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\pa{e}
+The tree was built in level order (C6), so T5 visits the nodes in index order $0, 1, \dots, 6$,
+which is \textit{arr}. \textbf{Postorder} visits the root last: by T4 a node is visited only after
+both of its subtrees, and every other node is in a subtree of 5.
+
+\pa{f}
+Search 3: compares 5, 12, 8, 21, 3, so it is found after \textbf{5} comparisons.
+Search 4: compares all 7 nodes, so it is not found after \textbf{7} comparisons (worst case, $n$).
+
+%=============================================================================
+\prob{Problem 3: Adding Elements to the Tree}
+
+Each insertion after (a) scans in level order with a queue (I2). Children are listed as
+(left, right); -- means NULL.
+\begin{center}\small
+\begin{tabularx}{\textwidth}{@{}cYlccl@{}}
+\toprule
+Insert & Nodes checked (left, right) & Rule per node & Parent & Side & Level order after\\
+\midrule
+11 & 5 (12, 8), 12 (21, 3), 8 (17, 9), 21 (--, --) & I5 $\times$3, I3 & 21 & Left & 5 12 8 21 3 17 9 11\\
+2  & 5, 12, 8 (both present), 21 (11, --) & I5 $\times$3, I4 & 21 & Right & 5 12 8 21 3 17 9 11 2\\
+14 & 5, 12, 8, 21 (both present), 3 (--, --) & I5 $\times$4, I3 & 3 & Left & 5 12 8 21 3 17 9 11 2 14\\
+6  & 5, 12, 8, 21 (both present), 3 (14, --) & I5 $\times$4, I4 & 3 & Right & 5 12 8 21 3 17 9 11 2 14 6\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\textbf{(a)} The tree is empty, so 5 becomes the root (\textbf{I1}).\\
+\textbf{(b)} 5, 12, 8 are full (I5); 21 has a free left position, so 11 is the \textbf{left child of 21} (I3).\\
+\textbf{(c)} 21's left is now 11, so I3 fails and \textbf{I4} puts 2 on the \textbf{right of 21}
+(index $8 = 2(3) + 2$).\\
+\textbf{(d)} Skipped by I5: \textbf{5, 12, 8, 21}. 14 is the \textbf{left child of 3} (I3).\\
+\textbf{(e)} I6: index $= n = 10$; parent $(10-1)/2 = 4$, value 3; $10 = 2(4)+2$, so \textbf{right of 3}.
+Full scan: 3 has left 14 and a free right (I4) \checkmark
+
+\trow{\tcell{(a) insert 5}{\cbt[1]{5}{0}{}}\hfill
+      \tcell{(b) insert 11}{\cbt[4]{5,12,8,21,3,17,9,11}{7}{}}\hfill
+      \tcell{(c) insert 2}{\cbt[4]{5,12,8,21,3,17,9,11,2}{8}{}}}
+\trow{\tcell{(d) insert 14}{\cbt[4]{5,12,8,21,3,17,9,11,2,14}{9}{}}\hfill
+      \tcell{(e) insert 6}{\cbt[4]{5,12,8,21,3,17,9,11,2,14,6}{10}{}}}
+
+%=============================================================================
+\prob{Problem 4: Deleting Elements (Every Case)}
+
+Each part starts from the original tree 5 12 8 21 3 17 9, whose deepest node is 9 (D3).
+
+\crow{\cbox{\textbf{(a) Case A: delete 4.} Level order checks all 7 nodes and never finds 4 (D3),
+so the tree is unchanged (D4).}
+{\tcell{Before = after}{\cbt{5,12,8,21,3,17,9}{}{}}}}
+{\cbox{\textbf{(b) Case B: delete 9.} Target $=$ deepest (D7): nothing is copied; D6 clears 8's
+right link. Easiest case: no copy, no other node changes.}
+{\tcell{Before}{\cbt{5,12,8,21,3,17,9}{}{6}}\hspace{6mm}\tcell{After}{\cbt{5,12,8,21,3,17}{}{}}}}
+
+\crow{\cbox{\textbf{(c) Case C: delete 21.} Target 21 (leaf), deepest 9. Copy 9 into 21's node (D5),
+remove the old 9 (D6).}
+{\tcell{Before}{\cbt{5,12,8,21,3,17,9}{}{3}}\hspace{6mm}\tcell{After}{\cbt{5,12,8,9,3,17}{3}{}}}}
+{\cbox{\textbf{(d) Case D: delete 12.} Target 12 (internal), deepest 9 (D5, D6). The replacement 9
+keeps 12's children: \textbf{21 (left) and 3 (right)}.}
+{\tcell{Before}{\cbt{5,12,8,21,3,17,9}{}{1}}\hspace{6mm}\tcell{After}{\cbt{5,9,8,21,3,17}{1}{}}}}
+
+\crow{\cbox{\textbf{(e) Case E: delete 5.} Target 5 (root), deepest 9. Copy 9 into the root (D5),
+remove the old 9 (D6). New root: \textbf{9}.}
+{\tcell{Before}{\cbt{5,12,8,21,3,17,9}{}{0}}\hspace{6mm}\tcell{After}{\cbt{9,12,8,21,3,17}{0}{}}}}
+{\cbox{\textbf{(f) Case F: $\{9\}$.} Delete 9: the only node holds the key, so the tree becomes empty.
+Delete 4 on a fresh $\{9\}$: not found, so it stays $\{9\}$ (D2).\par
+\textbf{(g) Case G:} the tree is empty; delete 5 does nothing (D1).}
+{\tcell{$\{9\}$}{\cbt[1]{9}{}{0}}\hspace{1mm}\tcell{del 9}{\cbt[1]{}{}{}}\hspace{3mm}
+ \tcell{$\{9\}$}{\cbt[1]{9}{}{}}\hspace{1mm}\tcell{del 4}{\cbt[1]{9}{}{}}}}
+
+\pa[40mm]{h}
+Removing the target directly would leave a hole: an internal target's children would lose their
+parent, and the array would have a gap, so the tree would no longer be complete. The deepest node is
+the last node in level order and always a leaf, so removing it disconnects nothing and keeps the tree
+complete; only one value is copied (D5) and one link cleared (D6).
+
+\begin{center}\small
+\begin{tabular}{@{}cccccl@{}}
+\toprule
+Case & Delete & Target & Deepest & Rules applied & Level order after\\
+\midrule
+A & 4     & not found     & 9     & D3, D4     & 5 12 8 21 3 17 9 (unchanged)\\
+B & 9     & 9             & 9     & D3, D7     & 5 12 8 21 3 17\\
+C & 21    & 21            & 9     & D3, D5, D6 & 5 12 8 9 3 17\\
+D & 12    & 12            & 9     & D3, D5, D6 & 5 9 8 21 3 17\\
+E & 5     & 5             & 9     & D3, D5, D6 & 9 12 8 21 3 17\\
+F & 9 / 4 & 9 / not found & 9 / 9 & D2         & empty / 9\\
+G & 5     & ---           & ---   & D1         & empty\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+%=============================================================================
+\prob{Problem 5: Deleting All Elements}
+
+\pa{a} Delete 5, 12, 8, 21, 3, 17, 9 without resetting the tree.
+\begin{center}\small
+\begin{tabular}{@{}cclcccl@{}}
+\toprule
+\# & Delete & Tree before & Deepest & Case & Rules & Tree after\\
+\midrule
+1 & 5  & 5 12 8 21 3 17 9 & 9  & E (root)     & D3, D5, D6 & 9 12 8 21 3 17\\
+2 & 12 & 9 12 8 21 3 17   & 17 & D (internal) & D3, D5, D6 & 9 17 8 21 3\\
+3 & 8  & 9 17 8 21 3      & 3  & C (leaf)     & D3, D5, D6 & 9 17 3 21\\
+4 & 21 & 9 17 3 21        & 21 & B (deepest)  & D3, D7     & 9 17 3\\
+5 & 3  & 9 17 3           & 3  & B (deepest)  & D3, D7     & 9 17\\
+6 & 17 & 9 17             & 17 & B (deepest)  & D3, D7     & 9\\
+7 & 9  & 9                & 9  & F (one node) & D2         & empty\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\pa{b}
+\trow{\tcell{Start}{\cbt{5,12,8,21,3,17,9}{}{}}\hfill
+      \tcell{1: del 5}{\cbt{9,12,8,21,3,17}{0}{}}\hfill
+      \tcell{2: del 12}{\cbt{9,17,8,21,3}{1}{}}\hfill
+      \tcell{3: del 8}{\cbt{9,17,3,21}{2}{}}}
+\trow{\tcell{4: del 21}{\cbt{9,17,3}{}{}}\hfill
+      \tcell{5: del 3}{\cbt{9,17}{}{}}\hfill
+      \tcell{6: del 17}{\cbt{9}{}{}}\hfill
+      \tcell{7: del 9}{\cbt[1]{}{}{}}}
+
+\pa{c}
+Cases E, D, C, B (three times) and F appeared; A and G did not (every key was present and the tree was
+never empty at the start of a deletion). The tree stayed complete after every step, because each
+deletion only removes the last node in level order, so the remaining nodes fill indices 0 to $n-2$
+with no gaps. Values copied: \textbf{3}.
+
+%=============================================================================
+\prob{Bonus: Reverse Order}
+
+Delete 9, 17, 3, 21, 8, 12, 5 from the original tree.
+\begin{center}\small
+\begin{tabular}{@{}cclcccl@{}}
+\toprule
+\# & Delete & Tree before & Deepest & Case & Rules & Tree after\\
+\midrule
+1 & 9  & 5 12 8 21 3 17 9 & 9  & B & D3, D7 & 5 12 8 21 3 17\\
+2 & 17 & 5 12 8 21 3 17   & 17 & B & D3, D7 & 5 12 8 21 3\\
+3 & 3  & 5 12 8 21 3      & 3  & B & D3, D7 & 5 12 8 21\\
+4 & 21 & 5 12 8 21        & 21 & B & D3, D7 & 5 12 8\\
+5 & 8  & 5 12 8           & 8  & B & D3, D7 & 5 12\\
+6 & 12 & 5 12             & 12 & B & D3, D7 & 5\\
+7 & 5  & 5                & 5  & F & D2     & empty\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\trow{\tcell{1: del 9}{\cbt{5,12,8,21,3,17}{}{}}\hfill
+      \tcell{2: del 17}{\cbt{5,12,8,21,3}{}{}}\hfill
+      \tcell{3: del 3}{\cbt{5,12,8,21}{}{}}\hfill
+      \tcell{4: del 21}{\cbt{5,12,8}{}{}}}
+\trow{\tcell{5: del 8}{\cbt{5,12}{}{}}\hfill
+      \tcell{6: del 12}{\cbt{5}{}{}}\hfill
+      \tcell{7: del 5}{\cbt[1]{}{}{}}}
+
+Case B at steps 1--6 and F at step 7. This order is the simplest because reversing \textit{arr}
+reverses the level order (C6), so the key deleted is always the deepest node: nothing is copied and
+only one leaf link is cleared (D7). Values copied (D5): \textbf{3} in the forward order, \textbf{0} in
+the reverse order.
+
+\end{document}
