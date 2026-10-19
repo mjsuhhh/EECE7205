@@ -1,0 +1,421 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=0.8in]{geometry}
+\usepackage{amsmath, amssymb}
+\usepackage{xcolor}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{graphicx}
+\usepackage{tikz}
+\usepackage{needspace}
+\usepackage{listings}
+
+\definecolor{newc}{HTML}{2E7D32}
+\definecolor{tgtc}{HTML}{C62828}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.3em plus 0.1em minus 0.1em}
+
+\lstset{language=C++, basicstyle=\ttfamily\scriptsize, keywordstyle=\color{blue!55!black}\bfseries,
+  commentstyle=\color{gray}\itshape, columns=fullflexible, keepspaces=true, showstringspaces=false,
+  frame=l, framerule=1.2pt, rulecolor=\color{newc}, xleftmargin=6pt, framexleftmargin=3pt,
+  aboveskip=2pt, belowskip=2pt}
+
+\tikzset{bn/.style={circle, draw, thick, fill=white, minimum size=4.9mm, inner sep=0pt, font=\scriptsize}}
+
+% \bst{values in level order, "." = no node}{slots with green ring}{slots with red ring}
+% Slot i sits at depth floor(log2(i+1)); its parent is slot (i-1)/2.
+\def\bstnone{.}
+\newcommand{\bst}[3]{%
+  \begin{tikzpicture}[x=1mm, y=1mm, baseline=(current bounding box.north)]
+    \def\bstN{0}%
+    \if\relax\detokenize{#1}\relax\else\foreach \bstV [count=\bstC] in {#1} {\xdef\bstN{\bstC}}\fi
+    \pgfmathtruncatemacro{\bstL}{(\bstN>1)+(\bstN>3)+(\bstN>7)}%
+    \ifcase\bstL\def\bstW{10}\or\def\bstW{20}\or\def\bstW{30}\or\def\bstW{48}\fi
+    \useasboundingbox (0,3.2) rectangle (\bstW,-7*\bstL-3.2);
+    \if\relax\detokenize{#1}\relax
+      \node[font=\footnotesize\itshape] at (\bstW/2,0) {(empty)};
+    \else
+      \foreach \bstV [count=\bstK from 0] in {#1} {
+        \ifx\bstV\bstnone\else
+          \pgfmathtruncatemacro{\bstD}{(\bstK>0)+(\bstK>2)+(\bstK>6)+(\bstK>14)}
+          \pgfmathsetmacro{\bstX}{(\bstK-(2^\bstD-1)+0.5)*\bstW/(2^\bstD)}
+          \node[bn] (n\bstK) at (\bstX,-7*\bstD) {\bstV};
+          \ifnum\bstK>0
+            \pgfmathtruncatemacro{\bstP}{(\bstK-1)/2}
+            \draw[thick] (n\bstP) -- (n\bstK);
+          \fi
+        \fi
+      }
+    \fi
+    \if\relax\detokenize{#2}\relax\else
+      \foreach \bstG in {#2} \draw[newc, line width=1.4pt] (n\bstG.center) circle (3.3);
+    \fi
+    \if\relax\detokenize{#3}\relax\else
+      \foreach \bstG in {#3} \draw[tgtc, line width=1.4pt] (n\bstG.center) circle (3.3);
+    \fi
+  \end{tikzpicture}}
+
+% \rchain{v0,v1,...}: a tree in which every node is the right child of the one before
+\newcommand{\rchain}[1]{%
+  \begin{tikzpicture}[x=1mm, y=1mm, baseline=(current bounding box.north)]
+    \foreach \cV [count=\cK from 0] in {#1} {
+      \node[bn] (c\cK) at (3.4*\cK,-4.2*\cK) {\cV};
+      \ifnum\cK>0 \pgfmathtruncatemacro{\cP}{\cK-1}\draw[thick] (c\cP) -- (c\cK);\fi
+    }
+  \end{tikzpicture}}
+
+\newcommand{\tcell}[2]{\begin{tabular}[t]{@{}c@{}}#2\\[-1pt]\footnotesize #1\end{tabular}}
+\newcommand{\gring}{\tikz[baseline=-0.6ex]\draw[newc, line width=1.4pt] (0,0) circle (1.1mm);}
+\newcommand{\rring}{\tikz[baseline=-0.6ex]\draw[tgtc, line width=1.4pt] (0,0) circle (1.1mm);}
+\newcommand{\p}[1]{\texttt{#1}}
+\newcommand{\case}[2]{\par\medskip\needspace{50mm}{\large\bfseries #1}\hfill{\small Rules: #2}\par\smallskip}
+\newcommand{\q}[1]{\par\smallskip\noindent\textbf{#1}\ }
+\newcommand{\chg}[2][25mm]{\par\smallskip\needspace{#1}{\small\itshape Changed in \texttt{#2}:}\par}
+
+% Question with its tree drawn on the right
+\newenvironment{qa}[2]{\def\qatree{#2}\par\smallskip\needspace{24mm}\noindent
+  \begin{minipage}[t]{0.66\linewidth}\textbf{#1}\ \ignorespaces}%
+  {\end{minipage}\hfill\begin{minipage}[t]{0.32\linewidth}\centering\qatree\end{minipage}\par}
+
+% \run{program}{output}: the screenshot screenshots/<program>.png if it exists, the output text otherwise
+\newcommand{\run}[2]{%
+  \begin{minipage}[t]{0.49\linewidth}
+    {\footnotesize\bfseries\ttfamily\detokenize{#1}}\par\vspace{1pt}
+    \IfFileExists{screenshots/#1.png}%
+      {\includegraphics[width=\linewidth, height=3.8cm, keepaspectratio]{screenshots/#1.png}}%
+      {\fcolorbox{gray!45}{gray!7}{\parbox{\dimexpr\linewidth-2\fboxsep-2\fboxrule}{\raggedright\scriptsize\ttfamily #2}}}
+  \end{minipage}}
+\newcommand{\runs}[2]{\par\smallskip\needspace{18mm}\noindent#1\hfill#2\par}
+\newcommand{\TB}{Before: 10 20 30 40 50 60 70 (root = 40)}
+\newcommand{\PB}{Before: 15 25 30 35 45 55 60 65 75 (root = 45)}
+
+\begin{document}
+
+\noindent\null\hfill
+\tcell{Tree T}{\bst{40,20,60,10,30,50,70}{}{}}\hfill
+\tcell{Tree P (insert 45, 25, 65, 15, 35, 55, 75, 30, 60)}{\bst{45,25,65,15,35,55,75,.,.,30,.,.,60}{}{}}\hfill
+\begin{tabular}[t]{@{}l@{}}\small\gring\ value moved / link changed\\[2pt]\small\rring\ node being deleted\end{tabular}\hfill\null
+
+{\small Programs on tree P build it with the usual BST \p{insert} (shown in Case 1, Q4). Programs for questions that ask for a drawing
+also print the preorder, which together with the inorder fixes the shape of the tree.}
+
+%=============================================================================
+\case{Case 1: Deleting the Root (case1.cpp)}{B5, B6}
+
+\begin{qa}{Q1}{\bst{40,20,60,10,30,50,70}{5}{0}}
+Visited: 40 (\p{parent = root}) $\to$ 60 (\p{succ = root->right}) $\to$ 50 (60 has a left child, so
+\p{parent = 60}, \p{succ = 50}). 50 has no left child, so the loop stops.
+Successor $= 50$, its parent $= 60$.
+\end{qa}
+
+\begin{qa}{Q2}{\bst{50,20,60,10,30,.,70}{0}{}}
+Inorder: 10 20 30 50 60 70.\quad Preorder: 50 20 10 30 60 70.\\
+The inorder is strictly increasing, which is exactly B7: the new root 50 is larger than everything on
+its left (10, 20, 30) and smaller than everything on its right (60, 70).
+\end{qa}
+
+\begin{qa}{Q3}{\bst{30,20,60,10,.,50,70}{0}{}}
+Predecessor: left once to 20, then right as far as possible to 30 (\p{parent = 20}). 30 is copied into the
+root and \p{20->right = 30->left = NULL}. \textbf{New root $= 30$.} The inorder does \emph{not} change
+(10 20 30 50 60 70): it always lists the remaining keys in sorted order, and both versions keep the same
+keys in a valid BST. Only the shape changes (preorder 30 20 10 60 50 70).
+\end{qa}
+\chg[38mm]{case1\_q3.cpp}
+\begin{lstlisting}
+Node* pred = root->left;                 // go left once (20)
+while (pred->right != nullptr)           // then right as far as possible
+{
+    parent = pred;
+    pred = pred->right;                  // pred = 30, parent = 20
+}
+root->data = pred->data;                 // root now holds 30
+if (parent == root)
+    parent->left = pred->left;
+else
+    parent->right = pred->left;          // 20->right = NULL
+delete pred;
+\end{lstlisting}
+
+\begin{qa}{Q4}{\bst{55,25,65,15,35,60,75,.,.,30}{0,5}{}}
+Successor of 45: right once to 65, then left to 55 (no left child). Successor $= 55$, parent $= 65$.
+55 is copied into the root. 55 is \emph{not} a leaf: it has a right child, 60. So it is removed with
+\textbf{B4}, not B3: \p{65->left = 55->right = 60}. The same line \p{parent->left = succ->right} covers both
+rules (\p{succ->right} is NULL for B3).\\
+Inorder: 15 25 30 35 55 60 65 75.\quad Preorder: 55 25 15 35 30 65 60 75.
+\end{qa}
+\chg[42mm]{case1\_q4.cpp}
+\begin{lstlisting}
+Node* insert(Node* node, int key)        // usual BST insert
+{
+    if (node == nullptr) return new Node(key);
+    if (key < node->data) node->left = insert(node->left, key);
+    else                  node->right = insert(node->right, key);
+    return node;
+}
+    int arr[] = {45, 25, 65, 15, 35, 55, 75, 30, 60};   // tree P (in main)
+    int n = sizeof(arr) / sizeof(arr[0]);
+    Node* root = nullptr;
+    for (int i = 0; i < n; i++)
+        root = insert(root, arr[i]);
+\end{lstlisting}
+
+\runs{\run{case1}{\TB\\After: 10 20 30 50 60 70 (root = 50)}}
+     {\run{case1_q2}{\TB\\After: 10 20 30 50 60 70 (root = 50)\\Preorder after: 50 20 10 30 60 70}}
+\runs{\run{case1_q3}{\TB\\After: 10 20 30 50 60 70 (root = 30)\\Preorder after: 30 20 10 60 50 70}}
+     {\run{case1_q4}{\PB\\After: 15 25 30 35 55 60 65 75 (root = 55)\\Preorder after: 55 25 15 35 30 65 60 75}}
+
+%=============================================================================
+\case{Case 2: Deleting a Leaf (case2.cpp)}{B1, B3}
+
+\begin{qa}{Q1}{\bst{40,20,60,10,30,50,70}{1}{3}}
+At 40: $10 \ne 40$, $10 < 40$ $\to$ left.\quad At 20: $10 \ne 20$, $10 < 20$ $\to$ left.\quad
+At 10: $10 = 10$ $\to$ stop.\\
+Parent $= 20$, and 10 is its \textbf{left} child, so \p{20->left = NULL}.
+\end{qa}
+
+\begin{qa}{Q2}{\bst{40,20,60,10,30,50}{2}{}}
+Changed \p{int key = 70;}. Search: 40 $\to$ right, 60 $\to$ right, 70 found with parent 60. 70 is 60's
+right child, so \p{60->right = NULL}. Printed: \p{After: 10 20 30 40 50 60 (root = 40)}.
+\end{qa}
+
+\begin{qa}{Q3}{\bst{45,25,65,15,35,55,75,.,.,.,.,.,60}{4}{}}
+Leaves of P: 15, 30, 60, 75. Deleting 30: 45 $\to$ left, 25 $\to$ right, 35 $\to$ left, found with
+parent 35, so \p{35->left = NULL}. \textbf{35 has just become a leaf.}
+Inorder: 15 25 35 45 55 60 65 75. (Changed: tree P, \p{int key = 30;}.)
+\end{qa}
+
+\begin{qa}{Q4}{\tcell{insert 10, 20, \dots, 70: $h = 6$}{\rchain{10,20,30,40,50,60,70}}}
+The search compares the key with one node per level along a root-to-leaf path, so the worst case is
+$\mathbf{h+1}$ comparisons ($h$ = height in edges). Tree T: $h = 2$, so at most 3. Inserting 10, 20, \dots, 70
+in order gives a chain with $h = 6$, and deleting the leaf 70 takes 7 comparisons (measured by
+\p{case2\_q4.cpp}). The unlinking itself is $O(1)$, so deleting a leaf costs $O(h)$: $\Theta(\log n)$ in a
+balanced tree but $\Theta(n)$ when the tree degenerates into a chain.
+\end{qa}
+\chg{case2\_q4.cpp (search loop of \p{deleteLeaf}, now counting)}
+\begin{lstlisting}
+while (cur != nullptr)
+{
+    comparisons++;                       // compare key with cur->data
+    if (key == cur->data) break;
+    parent = cur;
+    if (key < cur->data) cur = cur->left;
+    else                 cur = cur->right;
+}
+\end{lstlisting}
+
+\runs{\run{case2}{\TB\\After: 20 30 40 50 60 70 (root = 40)}}
+     {\run{case2_q2}{\TB\\After: 10 20 30 40 50 60 (root = 40)}}
+\runs{\run{case2_q3}{\PB\\After: 15 25 35 45 55 60 65 75 (root = 45)\\Preorder after: 45 25 15 35 65 55 60 75}}
+     {\run{case2_q4}{Tree T: h = 2\\\TB\\After: 10 20 30 40 50 60 (root = 40)\\Deleting leaf 70: 3 comparisons (h + 1 = 3)\\[3pt]
+       Chain: h = 6\\Before: 10 20 30 40 50 60 70 (root = 10)\\After: 10 20 30 40 50 60 (root = 10)\\Deleting leaf 70: 7 comparisons (h + 1 = 7)}}
+
+%=============================================================================
+\case{Case 3: Deleting a Node with One Child (case3.cpp)}{B1, B4 (B6)}
+
+\q{Q1} \textbf{35} has one child, 30, a \textbf{left} child. \textbf{55} has one child, 60, a \textbf{right}
+child. Every other node of P has 0 or 2 children.
+
+\begin{qa}{Q2}{\bst{45,25,65,15,30,55,75,.,.,.,.,.,60}{4}{}}
+Parent $= 25$; child moving up $= 30$; pointer changed: \p{25->right = 30} (35 was 25's right child).\\
+Inorder: 15 25 30 45 55 60 65 75.
+\end{qa}
+
+\begin{qa}{Q3}{\bst{45,25,65,15,35,60,75,.,.,30}{5}{}}
+Parent $= 65$; child moving up $= 60$; pointer changed: \p{65->left = 60}.\\
+Inorder: 15 25 30 35 45 60 65 75.\\
+$55 < 65$, so 55 is 65's \emph{left} child: \p{parent->left == cur} is true and the program writes
+\p{parent->left}. For 35 the test was false, because $35 > 25$ made it 25's right child.
+\end{qa}
+(Changed in \p{case3\_q2.cpp} / \p{case3\_q3.cpp}: tree P, \p{int key = 35;} / \p{55;}, and the ``remove 50 first'' step is dropped.)
+
+\begin{qa}{Q4}{\tcell{before}{\bst{10,.,20,.,.,.,30}{}{0}}\quad\tcell{after}{\bst{20,.,30}{0}{}}}
+\textbf{B6}: the root has 0 or 1 child (here one, 20), so the root pointer itself must change.
+\textbf{New root $= 20$.} In unchanged \p{case3.cpp}, 10 matches at the root, so the loop body never runs
+and \p{parent} stays \p{nullptr}. The line \p{if (parent->left == cur)} then dereferences NULL: undefined
+behaviour, and \p{case3\_q4\_unfixed.cpp} crashes with a segmentation fault. Even without the crash,
+\p{root} would still point to the freed node.
+\end{qa}
+\chg{case3\_q4.cpp}
+\begin{lstlisting}
+if (parent == nullptr)        root = child;          // B6: the root pointer changes
+else if (parent->left == cur) parent->left = child;
+else                          parent->right = child;
+\end{lstlisting}
+
+\runs{\run{case3}{\TB\\Middle: 10 20 30 40 60 70 (60 now has one child, 70)\\After: 10 20 30 40 70 (root = 40)}}
+     {\run{case3_q2}{\PB\\After: 15 25 30 45 55 60 65 75 (root = 45)\\Preorder after: 45 25 15 30 65 55 60 75}}
+\runs{\run{case3_q3}{\PB\\After: 15 25 30 35 45 60 65 75 (root = 45)\\Preorder after: 45 25 15 35 30 65 60 75}}
+     {\run{case3_q4}{Before: 10 20 30 (root = 10)\\After: 20 30 (root = 20)\\Preorder after: 20 30}}
+\runs{\run{case3_q4_unfixed}{Before: 10 20 30 (root = 10)\\(crashes: segmentation fault)}}{}
+
+%=============================================================================
+\case{Case 4: Deleting a Node with Two Children (case4.cpp)}{B1, B5, then B3/B4}
+
+\begin{qa}{Q1}{\bst{40,20,70,10,30,50}{2}{}}
+Changed \p{int key = 60;}. \p{succ = 60->right = 70}, and 70 has no left child, so the loop never runs:
+\textbf{succ $=$ 70, parent $=$ 60 ($=$ cur)}. The branch \p{if (parent == cur)} runs, because the successor is
+cur's own right child, not the left child of a deeper node: \p{cur->right = 70->right = NULL}.
+The node that held 60 now holds 70. Printed: \p{After: 10 20 30 40 50 70 (root = 40)}.
+\end{qa}
+
+\q{Q2} The search for the successor goes left until the left link is NULL, so it can only stop at a node with
+no left child. Put another way: if \p{succ} had a left child $L$, then $L$ would also be in cur's right subtree
+and smaller than \p{succ}, so $L$ would be the successor instead. If it could have one, step 4 would
+re-link only \p{succ->right}. \p{succ->left} and everything below it would be cut off: those keys would be lost
+from the tree and their memory leaked.
+
+\begin{qa}{Q3}{\bst{45,30,65,15,35,55,75,.,.,.,.,.,60}{1}{}}
+Successor of 25: right once to 35, then left to 30 (no left child). \textbf{Successor $= 30$, parent $= 35$.}
+30 is copied into the node that held 25, and \p{35->left = 30->right = NULL} (B3).\\
+Inorder: 15 30 35 45 55 60 65 75.
+\end{qa}
+
+\begin{qa}{Q4}{\bst{45,15,65,.,35,55,75,.,.,30,.,.,60}{1}{}}
+Predecessor of 25: left once to 15, which has no right child, so pred $= 15$ and parent $=$ cur. 15 is
+copied into the node, and \p{cur->left = 15->left = NULL}. Inorder: 15 30 35 45 55 60 65 75.\\
+\textbf{Not the same tree} as Q3: the left subtree is rooted at 15 instead of 30 (preorder 45 15 35 30 \dots\
+vs.\ 45 30 15 35 \dots). \textbf{Both are valid BSTs}, because both inorders are increasing (B7).
+\end{qa}
+\chg[38mm]{case4\_q4.cpp}
+\begin{lstlisting}
+Node* pred = cur->left;                  // 15
+while (pred->right != nullptr)
+{
+    parent = pred;
+    pred = pred->right;
+}
+cur->data = pred->data;                  // the node that held 25 now holds 15
+if (parent == cur)
+    parent->left = pred->left;           // 15 was cur's left child
+else
+    parent->right = pred->left;
+delete pred;
+\end{lstlisting}
+
+\runs{\run{case4}{\TB\\After: 10 30 40 50 60 70 (root = 40)}}
+     {\run{case4_q1}{\TB\\After: 10 20 30 40 50 70 (root = 40)}}
+\runs{\run{case4_q3}{\PB\\After: 15 30 35 45 55 60 65 75 (root = 45)\\Preorder after: 45 30 15 35 65 55 60 75}}
+     {\run{case4_q4}{\PB\\After: 15 30 35 45 55 60 65 75 (root = 45)\\Preorder after: 45 15 35 30 65 55 60 75}}
+
+%=============================================================================
+\case{Case 5: The Key Is Not in the Tree (case5.cpp)}{B1, B2}
+
+\q{Q1--Q2}\par\noindent
+\begin{minipage}[t]{0.5\linewidth}\vspace{0pt}\small
+\begin{tabular}{@{}clcl@{}}
+\toprule
+Key & Search path & Comp. & Stops at\\
+\midrule
+25 & 40 L, 20 R, 30 L, NULL & 3 & \p{30->left}\\
+5  & 40 L, 20 L, 10 L, NULL & 3 & \p{10->left}\\
+45 & 40 R, 60 L, 50 L, NULL & 3 & \p{50->left}\\
+75 & 40 R, 60 R, 70 R, NULL & 3 & \p{70->right}\\
+\bottomrule
+\end{tabular}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.47\linewidth}\vspace{0pt}
+All four tie at $3 = h + 1$. T is perfect with $h = 2$, so every NULL link hangs below a leaf at depth $h$,
+and an unsuccessful search always walks a full root-to-leaf path. In any BST it makes at most $h + 1$
+comparisons: fast in a balanced tree, slow in a tall one.
+\end{minipage}
+
+\begin{qa}{Q3}{\bst{40,20,60,10,30,50,70,.,.,25}{9}{}}
+The loop now also remembers \p{parent}. When \p{cur} reaches NULL, the new node goes on the side chosen by the
+last comparison: $25 < 30$, so \p{30->left = 25}.\\
+Inorder: 10 20 25 30 40 50 60 70.
+\end{qa}
+\chg[42mm]{case5\_q3.cpp (each branch also prints where the key went)}
+\begin{lstlisting}
+Node* parent = nullptr;                  // remember the parent this time
+while (cur != nullptr && cur->data != key)
+{
+    parent = cur;
+    ...
+}
+if (cur == nullptr)
+{
+    Node* newNode = new Node(key);
+    if (parent == nullptr)       root = newNode;            // empty tree
+    else if (key < parent->data) parent->left = newNode;    // 30->left = 25
+    else                         parent->right = newNode;
+}
+\end{lstlisting}
+
+\begin{qa}{Q4}{\bst{}{}{}}
+With \p{root = nullptr}, \p{root->data} dereferences a null pointer: undefined behaviour, in practice a crash.
+The check below prints \p{the tree is empty} and stops before anything reads \p{root->data}.
+Rule \textbf{B2}: the search reaches NULL at once, so the key is not found and nothing changes.
+\end{qa}
+\chg{case5\_q4.cpp}
+\begin{lstlisting}
+Node* root = nullptr;                    // empty tree
+if (root == nullptr)
+{
+    cout << "the tree is empty" << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\runs{\run{case5}{\TB\\25 is not in the tree: nothing to delete\\After: 10 20 30 40 50 60 70 (root = 40)}}
+     {\run{case5_q2}{\TB\\25: 40 L, 20 R, 30 L, NULL -> 3 comparisons, stops at 30->left\\5: 40 L, 20 L, 10 L, NULL -> 3 comparisons, stops at 10->left\\
+       45: 40 R, 60 L, 50 L, NULL -> 3 comparisons, stops at 50->left\\75: 40 R, 60 R, 70 R, NULL -> 3 comparisons, stops at 70->right\\After: 10 20 30 40 50 60 70 (root = 40)}}
+\runs{\run{case5_q3}{\TB\\25 is not in the tree: inserted at 30->left\\After: 10 20 25 30 40 50 60 70 (root = 40)\\Preorder after: 40 20 10 30 25 60 50 70}}
+     {\run{case5_q4}{the tree is empty}}
+
+%=============================================================================
+\case{Bonus: One Function for Every Case (bonus.cpp)}{B1--B6}
+
+\begin{lstlisting}
+Node* deleteNode(Node* root, int key)
+{
+    Node* parent = nullptr;                  // B1: search, remembering the parent
+    Node* cur = root;
+    while (cur != nullptr && cur->data != key)
+    {
+        parent = cur;
+        if (key < cur->data) cur = cur->left;
+        else                 cur = cur->right;
+    }
+    if (cur == nullptr)                      // B2: not found (also the empty tree)
+    {
+        cout << key << " is not in the tree: nothing to delete" << endl;
+        return root;
+    }
+    if (cur->left != nullptr && cur->right != nullptr)   // B5: two children
+    {
+        Node* succParent = cur;
+        Node* succ = cur->right;
+        while (succ->left != nullptr)
+        {
+            succParent = succ;
+            succ = succ->left;
+        }
+        cur->data = succ->data;
+        parent = succParent;                 // now remove succ (it has no left child)
+        cur = succ;
+    }
+    Node* child = (cur->left != nullptr) ? cur->left : cur->right;   // B3 / B4
+    if (parent == nullptr)        root = child;                       // B6
+    else if (parent->left == cur) parent->left = child;
+    else                          parent->right = child;
+    delete cur;
+    return root;
+}
+\end{lstlisting}
+
+\par\smallskip\noindent\null\hfill
+\tcell{delete 40 (B5, B6)}{\bst{50,20,60,10,30,.,70}{0}{}}\hfill
+\tcell{delete 10 (B3)}{\bst{50,20,60,.,30,.,70}{1}{}}\hfill
+\tcell{delete 60 (B4)}{\bst{50,20,70,.,30}{2}{}}\hfill
+\tcell{delete 25 (B2): unchanged}{\bst{50,20,70,.,30}{}{}}\hfill\null
+
+\textbf{Complexity.} The search goes down one root-to-leaf path, and the successor search only continues
+down the same path, so at most $h + 1$ nodes are visited in total. Re-linking is $O(1)$.
+\textbf{Time $O(h)$}: $\Theta(\log n)$ for a balanced tree and $\Theta(n)$ for a chain. Extra space is $O(1)$.
+
+\runs{\run{bonus}{Start: 10 20 30 40 50 60 70 (root = 40)\\Delete 40: 10 20 30 50 60 70 (root = 50)\\Delete 10: 20 30 50 60 70 (root = 50)\\
+  Delete 60: 20 30 50 70 (root = 50)\\25 is not in the tree: nothing to delete\\Delete 25: 20 30 50 70 (root = 50)\\[3pt]
+  Chain: 10 20 30 (root = 10)\\Delete 10: 20 30 (root = 20)\\Delete 20: 30 (root = 30)\\Delete 30: (empty)\\30 is not in the tree: nothing to delete\\Delete 30: (empty)}}{}
+
+\end{document}
