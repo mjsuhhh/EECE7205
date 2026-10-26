@@ -1,0 +1,443 @@
+%=============================================================================
+% EECE 7205: Fundamentals of Computer Engineering | Fall 2026
+% Dr. Fatema Nafa | Final Project Proposal | MyungJin Suh
+%=============================================================================
+\documentclass[10pt]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage[margin=0.7in]{geometry}
+\usepackage{amsmath, amssymb}
+\usepackage{float}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage[hidelinks]{hyperref}
+\usepackage{fancyhdr}
+\usepackage{enumitem}
+\usepackage{titlesec}
+
+\definecolor{shellbg}{HTML}{F5F5F5}
+\definecolor{rulegray}{HTML}{BBBBBB}
+\definecolor{headc}{HTML}{1F3864}
+
+\lstdefinestyle{term}{
+  basicstyle=\ttfamily\scriptsize,
+  backgroundcolor=\color{shellbg},
+  frame=single, rulecolor=\color{rulegray},
+  breaklines=true, columns=fullflexible, keepspaces=true,
+  showstringspaces=false, xleftmargin=4pt, xrightmargin=4pt,
+  aboveskip=3pt, belowskip=3pt,
+}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.28em plus 0.04em minus 0.04em}
+\setlength{\textfloatsep}{6pt plus 1pt minus 1pt}
+\setlength{\intextsep}{6pt plus 1pt minus 1pt}
+\setlist[itemize]{leftmargin=1.15em, itemsep=0.05em, topsep=0.15em, parsep=0pt}
+\setlist[enumerate]{leftmargin=1.25em, itemsep=0.04em, topsep=0.12em, parsep=0pt}
+\titlespacing*{\section}{0pt}{0.65em}{0.25em}
+\titlespacing*{\subsection}{0pt}{0.45em}{0.12em}
+
+\algrenewcommand\algorithmicrequire{\textbf{Input:}}
+\algrenewcommand\algorithmicensure{\textbf{Output:}}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\scriptsize\color{headc} EECE 7205 \textbar\ Final Project Proposal}
+\fancyhead[R]{\scriptsize\color{headc} MyungJin Suh}
+\fancyfoot[C]{\scriptsize\thepage}
+\renewcommand{\headrulewidth}{0.3pt}
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+
+\begin{document}
+
+{\large\bfseries EECE 7205 --- Final Project Proposal}\\[0.15em]
+{\bfseries Academic Advising and Course Planning Tool}\\[0.2em]
+MyungJin Suh \quad\textbar\quad Dr.\ Fatema Nafa \quad\textbar\quad Fall 2026 \quad\textbar\quad October 26, 2026
+
+\vspace{0.25em}
+Individual project, one member. Topic from the Iteration~1 recommended list.
+A menu-driven C++ program builds a prerequisite graph for the Northeastern
+BSCmpE and writes a semester plan. It compares topological earliest-semester
+packing with backtracking.
+
+\section{Project Title}
+
+\textbf{Academic Advising and Course Planning Tool.}
+Plans the remaining required courses for one BSCmpE student under prerequisite,
+term, and credit-cap constraints, and compares the two planners above.
+
+\section{Problem Statement and Proposed Solution}
+
+\textbf{Problem.} An advisor has to tell which requirements are done, which
+courses an OR-prerequisite and a ``may be taken concurrently'' note actually
+unlock, and which unlocked course should take the open seat when the cap, the
+offering term, and a preferred elective cannot all win. A local choice can add
+a semester.
+
+\textbf{User.} An advisor, or a student preparing for that meeting. One degree,
+one synthetic student at a time. The program does not register anyone and does
+not store real names.
+
+\textbf{Why it matters.} A plan that breaks a prerequisite cannot be followed.
+A prerequisite-correct plan can still waste a fall-only course. Those are
+different failures, so the project measures two algorithms.
+
+\textbf{What the program does.} It loads the requirements, builds the clause
+graph, and stops if the edges cycle. Completed courses come off the graph.
+Both planners run. A separate \texttt{verifyPlan} checks strict prerequisites
+in an earlier semester, concurrent ones in the same semester or earlier, the
+offering term, and the credit cap. The screen shows each plan, its span (index
+of the last semester used, holes included), a preference penalty, and the time.
+Scope is the BSCmpE required list plus prerequisites those entries name, not
+the whole university, and not seat counts.
+
+\textbf{Features.}
+\begin{enumerate}
+  \item Load requirements and clauses transcribed from the catalog.
+  \item Load one synthetic student: completed courses, credit cap, preferred electives.
+  \item Build the graph and refuse a cycle.
+  \item Look up a course by code.
+  \item Plan by clause-count topological order and earliest-semester packing.
+  \item Plan by backtracking, pruning on the best span.
+  \item Verify both plans and print span, preference, and time.
+  \item Save the chosen plan.
+  \item Time the worst-case family on synthetic graphs.
+\end{enumerate}
+
+\textbf{Inputs, outputs, and sources.}
+Requirements and prerequisite text, from the Northeastern undergraduate catalog:
+
+{\scriptsize
+\href{https://catalog.northeastern.edu/undergraduate/engineering/electrical-computer/computer-engineering-bscompe/}{https://catalog.northeastern.edu/undergraduate/engineering/}\\
+\href{https://catalog.northeastern.edu/undergraduate/engineering/electrical-computer/computer-engineering-bscompe/}{electrical-computer/computer-engineering-bscompe/}\\
+\url{https://catalog.northeastern.edu/course-descriptions/eece/}}
+Three clauses are copied exactly because the tests use them.
+EECE 2160 (4 hours): EECE 2140 or CS 2510, either may be concurrent.
+EECE 2322 (4 hours): EECE 2160 or EECE 2310.
+EECE 2560 (4 hours): EECE 2160 or CS 1500. The file will hold every
+required course on the BSCmpE page and the prerequisites those rows name.
+Math, physics, and CS appear only when an EECE row lists them. Rows are
+transcribed, not scraped. If a catalog page does not state a term, the course
+is marked \texttt{FS} and the README says so.
+
+Clauses are separated by \texttt{;}, AND-members by \texttt{+}, and a trailing
+\texttt{@} means concurrent. \texttt{offered} is \texttt{F}, \texttt{S}, or
+\texttt{FS}. A course unlocks when one clause is satisfied. A strict member
+must be earlier. A concurrent member may be earlier or in the same semester.
+Storing every alternative as a required edge would turn the OR into an AND.
+
+\begin{lstlisting}[style=term]
+code,title,credits,offered,clauses
+EECE2560,Fundamentals of Engineering Algorithms,4,FS,EECE2160;CS1500
+
+id,completed,maxCredits,prefer
+S01,EECE2140,8,EECE2560
+\end{lstlisting}
+
+Student ids are \texttt{S01}, \texttt{S02}, \ldots, synthetic, not people.
+Saving writes \texttt{semester,code,title,credits}. Timing appends algorithm,
+\(V\), median time, and whether the trial hit the cap.
+
+\textbf{Why this problem.} It is the recommended advising topic, limited to one
+degree so one person can transcribe the data and still measure both planners.
+The work is a graph, a topological order, a backtracking search, and a
+best-case and worst-case bound for each.
+
+\section{Team Structure, Contributions, and Objectives}
+
+\textbf{Team.} One member. The Iteration~1 sheet should use this same topic
+and description: MyungJin Suh; Academic Advising and Course Planning Tool; a
+C++ planner for the BSCmpE prerequisite graph, catalog rows transcribed from
+the undergraduate catalog, synthetic students, topological packing compared
+with backtracking, best- and worst-case time and space.
+
+\textbf{Objectives.} A working planner under prerequisite, term, and cap
+constraints. The graph, both planners, the queue, and insertion sort are
+hand-written; a \texttt{vector} is only a resizable array while reading.
+Compare span, preference, and time. State best and worst time, and space, as
+\(\Theta\) of the input that attains the bound. Test normal, boundary, and
+invalid cases, including a planted cycle. Use feature branches on
+\texttt{EECE7205\_HW}.
+
+\textbf{Contributions --- this iteration.} Done: chose the topic and the
+BSCmpE bound; cited the catalog and checked the three clauses; defined the CSV,
+the OR rule, and the concurrent rule; specified both planners, the verifier,
+and the bounds; wrote the pseudocode, tests T1--T10, and the timing plan,
+including one input where the planners must disagree. Next, still mine:
+transcribe \texttt{data/catalog.csv}; implement load, the BST index, and cycle
+detection; implement both planners and the verifier and confirm T4; add the
+timing script. This iteration is the design. Programming and testing are the
+following iterations.
+
+\textbf{Learning objectives.} Pass records by reference and const reference.
+Index codes with a BST and state the chain worst case. Implement an OR-clause
+topological order and a pruned backtracking search. Read and write CSV and
+reject a bad row. Derive the \(\Theta\) bounds, then time the worst-case
+family. Use branches, small commits, and pull requests.
+
+\section{Program Design and GitHub Collaboration --- This Iteration}
+
+\subsection{Initial program design}
+
+The nine features above are the menu, choices 1--9.
+
+\textbf{Data structures.} \texttt{Course} holds code, title, credits, fall,
+spring, and a required flag. \texttt{Clause} holds the owner index, up to four
+member indexes, a concurrent flag per member, and \texttt{left}, the members
+not yet completed. \texttt{Plan} holds \texttt{termOf[MAXC]} (\(-1\) if
+unplaced), span, and preference (sum of term indexes of preferred electives).
+Catalog and clauses live in fixed arrays; overflow is an error. The catalog is
+a few dozen required courses.
+
+A BST keyed by code maps to a catalog index. The node is the in-class shape:
+key, index, left, right. Lookup is \(\Theta(1)\) at the root and \(\Theta(V)\)
+on a chain. Sorted insertion builds that chain. The tree is not balanced.
+Space \(\Theta(V)\). The graph is the clause array plus
+\texttt{int adj[MAXC][MAXD]}, the clauses that mention each course. Clause
+counts, not one indegree, keep an OR from becoming an AND. Space
+\(\Theta(V+P)\), \(P\) the number of clause memberships. The Kahn queue is a
+ring buffer of indexes, not \texttt{std::queue}. A hand-written insertion sort
+orders a ready list by code: \(\Theta(r)\) best, \(\Theta(r^{2})\) worst,
+\(r \le V\).
+
+\textbf{Planners.} Both place only unlocked courses and both refuse a cycle.
+\texttt{verifyPlan} does not share code with either search. Planner~A builds
+the clause-count order (a course enters when some clause has \texttt{left = 0},
+ties break toward the smaller code), then places each course in the earliest
+legal semester. That earliest fit is the greedy step, and T4 is where it picks
+the wrong fall-only course. Planner~B tries semesters in that same order,
+earliest first, keeps the smallest span, and cuts a branch that cannot finish
+sooner. Preference breaks equal spans.
+
+\textbf{Bounds.}
+\label{sec:bounds}
+\(V\) courses left to place, \(P\) clause memberships, \(S\) semesters
+(\(S = 16\) in the program, eight years of fall and spring), \(r\) courses
+ready in one semester.
+
+{\footnotesize
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{1.35in} Y Y@{}}
+\toprule
+\textbf{Operation} & \textbf{Time} & \textbf{Space} \\
+\midrule
+Load and build &
+\(\Theta(V+P)\) best and worst &
+\(\Theta(V+P)\) \\
+BST lookup &
+Best \(\Theta(1)\), the root. Worst \(\Theta(V)\), a chain &
+\(\Theta(V)\) \\
+Topological order &
+\(\Theta(V+P)\) best and worst. Each course is enqueued once; each membership is decremented once &
+\(\Theta(V)\) \\
+Earliest-semester packing &
+\(\Theta(VS+P)\) best and worst &
+\(\Theta(V)\) \\
+Backtracking &
+Best \(\Theta(V+P)\): a chain with one legal semester per course, and the span bound cuts the rest.
+Worst \(\Theta(S^{V})\): \(P = 0\), every course offered every term, cap never binds &
+\(\Theta(V)\) \\
+\bottomrule
+\end{tabularx}}
+
+Packing is polynomial. Backtracking is exponential on that family, which is why
+the experiment has a time cap. Extra space beyond the graph is linear in \(V\).
+
+\textbf{Functions.}
+\texttt{loadCatalog} reads rows and rejects a bad credit, term, or unknown
+clause member.
+\texttt{loadStudent} reads one synthetic student.
+\texttt{buildIndex} / \texttt{searchNode} maintain the BST; a duplicate code is
+an error.
+\texttt{buildGraph} fills counts and adjacency lists.
+\texttt{topologicalOrder} returns false if a required course never becomes ready.
+\texttt{greedyPlan} packs along that order.
+\texttt{backtrackPlan} is Algorithm~\ref{alg:bt}.
+\texttt{unlocked} applies the concurrent rule.
+\texttt{verifyPlan} rechecks prerequisites, offerings, and the cap.
+\texttt{scorePlan} returns span, then preference.
+\texttt{insertionSort} orders a ready list.
+\texttt{runTimingSeries} takes five trials and the median, and stops at a time cap.
+\texttt{showMenu}, \texttt{savePlan}, and \texttt{freeTree} do what the names say.
+Planners do not read \texttt{cin}. Tests call them directly.
+
+\textbf{Pseudocode, written before the C++.}
+
+\begin{algorithm}[H]
+\caption{Main program}
+\footnotesize
+\begin{algorithmic}[1]
+\Require catalog path, and a student path when the user loads one
+\Ensure both plans printed, or the bad row named
+\State $courses, clauses \gets \Call{loadCatalog}{path}$
+\If{the load failed, or a code is duplicated}
+    \State print the row and stop
+\EndIf
+\State \Call{buildGraph}{courses, clauses}
+\Repeat
+    \State $choice \gets \Call{showMenu}{}$
+    \If{choice is outside 1--9} \State print ``Enter a number from 1 to 9''
+    \ElsIf{choice is 4, 5, or 6}
+        \If{no student is loaded} \State print ``Load a student first''
+        \Else \State run the requested planners, \Call{verifyPlan}{result}, print span, preference, and time
+        \EndIf
+    \ElsIf{choice is 9} \State \Call{freeTree}{root} and stop
+    \EndIf
+\Until{stopped}
+\end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}[H]
+\caption{Earliest-semester packing}
+\footnotesize
+\begin{algorithmic}[1]
+\Require courses, clauses, completed set, cap, and $S$ semesters
+\Ensure a plan, or failure if the order cannot be built
+\State $order \gets \Call{topologicalOrder}{courses, completed}$
+\If{order is incomplete} \State \Return failure \EndIf
+\State $load[1 \ldots S] \gets 0$
+\For{each not-yet-completed course $c$ along order}
+    \State $placed \gets$ false
+    \For{$s \gets 1$ to $S$}
+        \If{$c$ is offered in $s$, the cap has room, and some clause is satisfied
+            (strict members earlier; concurrent members in $s$ or earlier)}
+            \State put $c$ in $s$, add its credits to $load[s]$, set $placed$, and \textbf{break}
+        \EndIf
+    \EndFor
+    \If{placed is false} \State \Return failure \EndIf
+\EndFor
+\State \Return the plan
+\end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}[H]
+\caption{Backtracking plan}
+\label{alg:bt}
+\footnotesize
+\begin{algorithmic}[1]
+\Require the topological order, the cap, and $S$
+\Ensure the stored plan with the smallest span
+\State $best.span \gets S + 1$; \quad \Call{Search}{1}; \quad \Return $best$
+\Statex
+\Function{Search}{$i$}
+    \If{$i$ is past the end of order}
+        \If{this span is smaller than $best.span$} \State $best \gets$ this plan \EndIf
+        \State \Return
+    \EndIf
+    \State $c \gets order[i]$
+    \If{$c$ is already completed} \State \Call{Search}{$i + 1$}; \quad \Return \EndIf
+    \For{$s \gets 1$ to $S$}
+        \If{$s$ cannot beat $best.span$} \State \Return \EndIf
+        \If{$c$ is offered in $s$, the cap holds, and some clause is satisfied}
+            \State place $c$ in $s$; \quad \Call{Search}{$i + 1$}; \quad undo
+        \EndIf
+    \EndFor
+\EndFunction
+\end{algorithmic}
+\end{algorithm}
+
+Semesters are tried earliest first, so a later \(s\) cannot beat a span already
+found and the inner return is the prune. On a chain with one legal semester
+per course, the first plan is the only plan. That is the \(\Theta(V+P)\) case.
+
+\textbf{Tests.}
+\label{sec:tests}
+T1--T2 use the published clauses. T3--T6 and T9 use a constructed file, not the
+catalog: \(P\) and \(Q\) are fall-only, \(R\) is spring-only, \(Q\) is a strict
+prerequisite of \(R\), the cap is one course, and the calendar starts in a fall.
+
+{\scriptsize
+\begin{tabularx}{\linewidth}{@{}l l Y Y@{}}
+\toprule
+\textbf{ID} & \textbf{Kind} & \textbf{Input} & \textbf{Expected} \\
+\midrule
+T1 & Normal & Look up EECE 2560 &
+Clause EECE 2160 or CS 1500. Credits 4. \\
+T2 & Normal & Completed set is EECE 2160 &
+EECE 2560 and EECE 2322 unlock. EECE 2160 is not planned again. \\
+T3 & Normal & \(P, Q, R\), cap 1, both planners &
+Both pass \texttt{verifyPlan}. \(R\) is never beside or before \(Q\). \\
+T4 & Normal & Same file, compare spans &
+Greedy span 4: \(P\), empty spring, \(Q\), \(R\).
+Backtracking span 3: \(Q\), \(R\), \(P\). \\
+T5 & Boundary & Every required course already done &
+Both plans empty, span 0. \\
+T6 & Boundary & Cap 0, one course left &
+Both fail. No plan file is written. \\
+T7 & Invalid & Duplicate code EECE 2560 &
+Load stops on that row. \\
+T8 & Invalid & Clause names EECE 9999 &
+Load stops and names EECE 9999. \\
+T9 & Invalid & Add edge \(R \to Q\) &
+Order is incomplete. Neither planner prints a semester list. \\
+T10 & Invalid & Menu 0, 10, and a blank line &
+``Enter a number from 1 to 9.'' \\
+\bottomrule
+\end{tabularx}}
+
+\textbf{Experiment.} Worst-case family from the bound: \(P = 0\), every course
+offered every term, cap loose, \(S = 4\), \(V \in \{8, 10, 12\}\), five trials,
+median time. A trial past the cap is recorded as capped. Packing should stay
+fast; backtracking's median should jump. No millisecond guess before measuring.
+A second run uses the transcribed BSCmpE file and three synthetic students
+(nothing completed, the first programming course completed, one preferred
+elective). Both plans must pass \texttt{verifyPlan}. Which span is smaller
+waits on that file.
+
+\subsection{GitHub setup}
+
+Repository \texttt{EECE7205\_HW}, private, only collaborator, default branch
+\texttt{main}: \url{https://github.com/mjsuhhh/EECE7205_HW}.
+Homework stays where it is. Project files go under \texttt{FinalProject/}.
+Instructor read access if the course asks.
+
+\texttt{main} stays compilable. Feature branches:
+\texttt{feature/load-catalog}, \texttt{feature/prereq-graph},
+\texttt{feature/greedy-plan}, \texttt{feature/backtracking}.
+Each opens a pull request. I review my own diff before merging: builds with
+\texttt{g++ -std=c++17 -Wall -Wextra}, new tests pass, the function matches the
+pseudocode, and \texttt{verifyPlan} is not the planner it checks.
+Commits stay small (\texttt{Add the BSCmpE catalog CSV},
+\texttt{Add clause-count topological order}).
+Order of work: catalog and README, then the graph, packing, backtracking, then
+the timing script.
+
+\texttt{FinalProject/README.md} comes with the first code: description, both
+catalog URLs, CSV columns, OR and concurrent rules, build and run, and progress.
+Build and run: \texttt{g++ -std=c++17 -Wall -Wextra -o planner src/main.cpp}
+and \texttt{./planner data/catalog.csv}.
+Progress now: topic, sources, pseudocode, bounds, and tests. No \texttt{.cpp}
+yet.
+
+\section{Tools and Programming Language}
+
+No external libraries. The graph, both planners, the queue, the BST, and
+insertion sort are mine. Files use \texttt{<fstream>} and \texttt{<sstream>}.
+Timing uses \texttt{<chrono>}. A CSV or graph library would hide the clauses
+and the search.
+
+{\footnotesize
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{1.15in} Y >{\raggedright\arraybackslash}p{1.45in}@{}}
+\toprule
+\textbf{Tool} & \textbf{Use} & \textbf{Skill} \\
+\midrule
+C++17 & Structs, functions, references, arrays, pointers. No class hierarchy. &
+Existing, on a larger program \\
+g++ and clang & \texttt{-std=c++17 -Wall -Wextra}, as in the homework. & Existing \\
+Visual Studio Code & Edit and read compiler diagnostics. & Existing \\
+Git and GitHub & Branches, commits, and pull requests on \texttt{EECE7205\_HW}. &
+Commits existing; pull requests new \\
+GDB or the VS Code debugger & Stop in \texttt{unlocked} and \texttt{Search}. & To develop \\
+Catalog and student CSV & Real clauses transcribed. Synthetic student rows. & To develop \\
+T1--T10 and timing & Correctness, then \(P = 0\) at \(V = 8, 10, 12\). &
+Bounds existing; timing a search is new \\
+\texttt{run\_tests.sh} & Compile and run the non-menu checks, as in Assignment~01. & Existing pattern \\
+GitHub Actions & Not used. The shell script is the check. & Not used \\
+\bottomrule
+\end{tabularx}}
+
+\end{document}
