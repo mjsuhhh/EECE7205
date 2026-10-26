@@ -1,0 +1,15 @@
+=== Run 1: original array A ===
+Original: 34 7 23 32 5 62 14 19
+Pass 1:   7 23 32 5 34 14 19 62
+Pass 2:   7 23 5 32 14 19 34 62
+Pass 3:   7 5 23 14 19 32 34 62
+Pass 4:   5 7 14 19 23 32 34 62
+Pass 5:   5 7 14 19 23 32 34 62
+Sorted:   5 7 14 19 23 32 34 62
+Passes: 5   Comparisons: 25   Swaps: 15
+
+=== Run 2: already sorted copy of A ===
+Original: 5 7 14 19 23 32 34 62
+Pass 1:   5 7 14 19 23 32 34 62
+Sorted:   5 7 14 19 23 32 34 62
+Passes: 1   Comparisons: 7   Swaps: 0

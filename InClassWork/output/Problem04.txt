@@ -1,0 +1,33 @@
+=== Run 1: original array A ===
+Original: 34 7 23 32 5 62 14 19
+pivot = 19: 34 7 23 32 5 62 14 19
+  | swap  i = 0, j = 1: 7 34 23 32 5 62 14 19
+  | swap  i = 1, j = 4: 7 5 23 32 34 62 14 19
+  | swap  i = 2, j = 6: 7 5 14 32 34 62 23 19
+  | pivot 19 placed at index 3: 7 5 14 19 34 62 23 32
+   pivot = 14: 7 5 14
+      pivot = 5: 7 5
+   pivot = 32: 34 62 23 32
+      pivot = 62: 34 62
+Sorted:   5 7 14 19 23 32 34 62
+Comparisons: 14
+
+=== Run 2: already sorted copy of A ===
+Original: 5 7 14 19 23 32 34 62
+pivot = 62: 5 7 14 19 23 32 34 62
+  | swap  i = 0, j = 0: 5 7 14 19 23 32 34 62
+  | swap  i = 1, j = 1: 5 7 14 19 23 32 34 62
+  | swap  i = 2, j = 2: 5 7 14 19 23 32 34 62
+  | swap  i = 3, j = 3: 5 7 14 19 23 32 34 62
+  | swap  i = 4, j = 4: 5 7 14 19 23 32 34 62
+  | swap  i = 5, j = 5: 5 7 14 19 23 32 34 62
+  | swap  i = 6, j = 6: 5 7 14 19 23 32 34 62
+  | pivot 62 placed at index 7: 5 7 14 19 23 32 34 62
+   pivot = 34: 5 7 14 19 23 32 34
+      pivot = 32: 5 7 14 19 23 32
+         pivot = 23: 5 7 14 19 23
+            pivot = 19: 5 7 14 19
+               pivot = 14: 5 7 14
+                  pivot = 7: 5 7
+Sorted:   5 7 14 19 23 32 34 62
+Comparisons: 28
